@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autenticación - Sistema ISO</title>
+    <!-- Tailwind CSS desde CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'iso-blue': {
+                            100: '#ebf8ff',
+                            200: '#bee3f8',
+                            300: '#90cdf4',
+                            400: '#63b3ed',
+                            500: '#4299e1',
+                            600: '#3182ce',
+                            700: '#2b6cb0',
+                            800: '#2c5282',
+                            900: '#2a4365',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/css">
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1920&q=80') no-repeat center center;
+            background-size: cover;
+            filter: blur(6px) brightness(0.8);
+            transform: scale(1.05);
+            z-index: -10;
+        }
+        
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 54, 93, 0.82);
+            z-index: -5;
+        }
+        
+        /* Estilos personalizados para complementar Tailwind */
+        .password-toggle {
+            background: none;
+            border: none;
+        }
+        
+        .auth-form {
+            display: none;
+        }
+        
+        .auth-form.active {
+            display: block;
+        }
+        
+        /* Asegurar que los inputs con iconos tengan suficiente padding */
+        .input-with-icon {
+            padding-left: 2.5rem;
+        }
+        
+        /* Estilo para pestaña activa */
+        .auth-tab.active {
+            background-color: #3182ce;
+            box-shadow: inset 0 -3px 0 #fff;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex justify-center items-center p-5">
+    <!-- Contenedor principal del formulario -->
+    <div class="auth-container w-full max-w-md bg-white bg-opacity-97 rounded-2xl shadow-2xl overflow-hidden relative backdrop-blur-sm border border-white border-opacity-20">
+        <!-- Pestañas de Login/Registro -->
+        <div class="auth-tabs flex bg-iso-blue-800 border-b border-iso-blue-600">
+            <div class="auth-tab active flex-1 text-center py-4 text-white font-semibold cursor-pointer transition-all duration-300 text-sm md:text-base" onclick="switchTab('login')">
+                INICIAR SESIÓN
+            </div>
+            <div class="auth-tab flex-1 text-center py-4 text-white font-semibold cursor-pointer transition-all duration-300 text-sm md:text-base" onclick="switchTab('register')">
+                REGISTRARSE
+            </div>
+        </div>
+        
+        <!-- Formularios -->
+        <div class="auth-forms relative min-h-[440px]">
+            <!-- Formulario de Login -->
+            <form class="auth-form active p-7 animate-fade-in" id="login-form" method="post" action="/login">
+                <div class="logo text-center mb-2 text-iso-blue-600 text-xl font-bold">
+                    <i class="fas fa-certificate mr-2"></i>ISO Management System
+                </div>
+                <h2 class="form-title text-center mb-5 text-gray-800 text-2xl font-semibold">Bienvenido</h2>
+                <p class="form-subtitle text-center mb-6 text-gray-600 text-sm leading-relaxed">
+                    Sistema de capacitación y auditorias para normatividad ISO
+                </p>
+                
+                <div class="input-group mb-4 relative">
+                    <label for="login-email" class="block mb-1 text-gray-700 text-sm font-medium">Email</label>
+                    <i class="fas fa-envelope absolute left-3 top-9 text-gray-500 text-sm"></i>
+                    <input type="email" id="login-email" name="email" placeholder="tu@email.com" class="input-with-icon w-full py-3 px-3 pl-10 bg-gray-50 border border-gray-300 rounded-lg text-sm transition-all focus:outline-none focus:border-iso-blue-500 focus:ring-2 focus:ring-iso-blue-200" required>
+                </div>
+                
+                <div class="input-group mb-4 relative">
+                    <label for="login-password" class="block mb-1 text-gray-700 text-sm font-medium">Contraseña</label>
+                    <i class="fas fa-lock absolute left-3 top-9 text-gray-500 text-sm"></i>
+                    <input type="password" id="login-password" name="password" placeholder="••••••••" class="input-with-icon w-full py-3 px-3 pl-10 pr-10 bg-gray-50 border border-gray-300 rounded-lg text-sm transition-all focus:outline-none focus:border-iso-blue-500 focus:ring-2 focus:ring-iso-blue-200" required>
+                    <button type="button" class="password-toggle absolute right-3 top-9 text-gray-500 text-sm" onclick="togglePassword('login-password', 'login-eye')">
+                        <i class="fas fa-eye" id="login-eye"></i>
+                    </button>
+                </div>
+                
+                <div class="remember-forgot flex justify-between items-center mb-5 text-sm">
+                    <div class="remember flex items-center">
+                        <input type="checkbox" id="remember" name="remember">
+                        <label for="remember" class="text-gray-700 ml-2">Recordarme</label>
+                    </div>
+                    <a href="/Proximamente..." class="forgot-password text-iso-blue-600 font-medium hover:underline">¿Olvidaste tu contraseña?</a>
+                </div>
+                
+                <button type="submit" class="submit-btn w-full py-3 bg-iso-blue-600 text-white font-semibold rounded-lg transition-all hover:bg-iso-blue-800 shadow-md hover:shadow-lg">Iniciar Sesión</button>
+            </form>
+            
+            <!-- Formulario de Registro -->
+            <form class="auth-form p-7 animate-fade-in" id="register-form" method="post" action="/register">
+                <div class="logo text-center mb-2 text-iso-blue-600 text-xl font-bold">
+                    <i class="fas fa-certificate mr-2"></i>ISO Management System
+                </div>
+                <h2 class="form-title text-center mb-5 text-gray-800 text-2xl font-semibold">Crear Cuenta</h2>
+                <p class="form-subtitle text-center mb-6 text-gray-600 text-sm leading-relaxed">
+                    Únete a nuestra plataforma de auditorias y capacitación ISO
+                </p>
+                
+                <div class="input-group mb-4 relative">
+                    <label for="register-name" class="block mb-1 text-gray-700 text-sm font-medium">Nombre completo</label>
+                    <i class="fas fa-user absolute left-3 top-9 text-gray-500 text-sm"></i>
+                    <input type="text" id="register-name" name="name" placeholder="Tu nombre completo" class="input-with-icon w-full py-3 px-3 pl-10 bg-gray-50 border border-gray-300 rounded-lg text-sm transition-all focus:outline-none focus:border-iso-blue-500 focus:ring-2 focus:ring-iso-blue-200" required>
+                </div>
+                
+                <div class="input-group mb-4 relative">
+                    <label for="register-email" class="block mb-1 text-gray-700 text-sm font-medium">Email</label>
+                    <i class="fas fa-envelope absolute left-3 top-9 text-gray-500 text-sm"></i>
+                    <input type="email" id="register-email" name="email" placeholder="tu@email.com" class="input-with-icon w-full py-3 px-3 pl-10 bg-gray-50 border border-gray-300 rounded-lg text-sm transition-all focus:outline-none focus:border-iso-blue-500 focus:ring-2 focus:ring-iso-blue-200" required>
+                </div>
+                
+                <div class="input-group mb-4 relative">
+                    <label for="register-password" class="block mb-1 text-gray-700 text-sm font-medium">Contraseña</label>
+                    <i class="fas fa-lock absolute left-3 top-9 text-gray-500 text-sm"></i>
+                    <input type="password" id="register-password" name="password" placeholder="••••••••" class="input-with-icon w-full py-3 px-3 pl-10 pr-10 bg-gray-50 border border-gray-300 rounded-lg text-sm transition-all focus:outline-none focus:border-iso-blue-500 focus:ring-2 focus:ring-iso-blue-200" required>
+                    <button type="button" class="password-toggle absolute right-3 top-9 text-gray-500 text-sm" onclick="togglePassword('register-password', 'register-eye')">
+                        <i class="fas fa-eye" id="register-eye"></i>
+                    </button>
+                </div>
+                
+                <div class="input-group mb-4 relative">
+                    <label for="confirm-password" class="block mb-1 text-gray-700 text-sm font-medium">Confirmar contraseña</label>
+                    <i class="fas fa-lock absolute left-3 top-9 text-gray-500 text-sm"></i>
+                    <input type="password" id="confirm-password" name="confirm-password" placeholder="••••••••" class="input-with-icon w-full py-3 px-3 pl-10 pr-10 bg-gray-50 border border-gray-300 rounded-lg text-sm transition-all focus:outline-none focus:border-iso-blue-500 focus:ring-2 focus:ring-iso-blue-200" required>
+                    <button type="button" class="password-toggle absolute right-3 top-9 text-gray-500 text-sm" onclick="togglePassword('confirm-password', 'confirm-eye')">
+                        <i class="fas fa-eye" id="confirm-eye"></i>
+                    </button>
+                </div>
+                
+                <div class="terms flex items-center mt-5 text-sm text-gray-600">
+                    <input type="checkbox" id="terms" name="terms" required>
+                    <label for="terms" class="ml-2">Acepto los <a href="#" class="text-iso-blue-600 font-medium hover:underline">términos y condiciones</a></label>
+                </div>
+                
+                <button type="submit" class="submit-btn w-full py-3 mt-6 bg-iso-blue-600 text-white font-semibold rounded-lg transition-all hover:bg-iso-blue-800 shadow-md hover:shadow-lg">Crear Cuenta</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Función para cambiar entre pestañas
+        function switchTab(tabName) {
+            // Actualizar pestañas
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            const activeTab = document.querySelector(`.auth-tab:nth-child(${tabName === 'login' ? 1 : 2})`);
+            activeTab.classList.add('active');
+            
+            // Actualizar formularios
+            document.querySelectorAll('.auth-form').forEach(form => {
+                form.classList.remove('active');
+            });
+            
+            document.getElementById(`${tabName}-form`).classList.add('active');
+        }
+        
+        // Función para mostrar/ocultar contraseña
+        function togglePassword(inputId, eyeIconId) {
+            const passwordInput = document.getElementById(inputId);
+            const eyeIcon = document.getElementById(eyeIconId);
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        }
+        
+        // Inicializar pestaña activa
+        document.addEventListener('DOMContentLoaded', function() {
+            switchTab('login');
+        });
+    </script>
+</body>
+</html>

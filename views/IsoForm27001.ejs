@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formulario ISO 27001 - Herramienta de Auditorías</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .iso-27001-bg {
+      background-image: url('https://images.unsplash.com/photo-1563013544-824ae1b704d3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80');
+      background-size: cover;
+      background-position: center;
+    }
+    .form-container {
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body class="min-h-screen iso-27001-bg">
+  <div class="container mx-auto px-4 py-8 flex flex-col justify-center min-h-screen">
+    <div class="max-w-4xl mx-auto w-full">
+      <div class="bg-white rounded-lg shadow-2xl border-0 overflow-hidden">
+        <!-- Header de la tarjeta -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-t-lg p-6">
+          <div class="flex items-center gap-3">
+            <div class="p-3 rounded-full shadow-md bg-gradient-to-br from-blue-100 to-indigo-100">
+              <i data-lucide="shield-check" class="h-7 w-7 text-blue-600"></i>
+            </div>
+            <div>
+              <h2 class="text-2xl font-bold text-blue-800">Formulario ISO 27001:2022</h2>
+              <p class="text-gray-600">Complete los datos para registrar la auditoría</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contenido del formulario -->
+        <div class="p-6 form-container">
+          <form class="space-y-6" onsubmit="handleSubmit(event, '27001')">
+            <!-- Información básica de la empresa -->
+            <div class="border-b border-gray-200 pb-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <i data-lucide="building" class="h-5 w-5"></i>
+                Información de la Empresa
+              </h3>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                  <label for="razonSocial" class="block text-sm font-medium text-gray-700">
+                    Razón Social
+                  </label>
+                  <input
+                    type="text"
+                    id="razonSocial"
+                    name="razonSocial"
+                    placeholder="Ej: Seguridad Informática Ltda."
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                </div>
+                
+                <div class="space-y-2">
+                  <label for="nit" class="block text-sm font-medium text-gray-700">
+                    NIT
+                  </label>
+                  <input
+                    type="text"
+                    id="nit"
+                    name="nit"
+                    placeholder="Ej: 802.345.678-9"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                </div>
+              </div>
+              
+              <div class="grid md:grid-cols-2 gap-4 mt-4">
+                <div class="space-y-2">
+                  <label for="representanteLegal" class="block text-sm font-medium text-gray-700">
+                    Representante Legal
+                  </label>
+                  <input
+                    type="text"
+                    id="representanteLegal"
+                    name="representanteLegal"
+                    placeholder="Ej: Ana Rodríguez Pérez"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                </div>
+                
+                <div class="space-y-2">
+                  <label for="sectorEconomico" class="block text-sm font-medium text-gray-700">
+                    Sector Económico
+                  </label>
+                  <select
+                    id="sectorEconomico"
+                    name="sectorEconomico"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Seleccionar sector</option>
+                    <option value="tecnologia">Tecnología</option>
+                    <option value="financiero">Financiero</option>
+                    <option value="salud">Salud</option>
+                    <option value="servicios">Servicios</option>
+                    <option value="consultoria">Consultoría</option>
+                    <option value="comercio">Comercio</option>
+                    <option value="educacion">Educación</option>
+                    <option value="manufactura">Manufactura</option>
+                    <option value="otros">Otros</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="grid md:grid-cols-2 gap-4 mt-4">
+                <div class="space-y-2">
+                  <label for="tipoEmpresa" class="block text-sm font-medium text-gray-700">
+                    Tipo de Empresa
+                  </label>
+                  <select
+                    id="tipoEmpresa"
+                    name="tipoEmpresa"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Seleccionar tipo</option>
+                    <option value="sociedad_anonima">Sociedad Anónima</option>
+                    <option value="sociedad_ltda">Sociedad Limitada</option>
+                    <option value="empresa_unipersonal">Empresa Unipersonal</option>
+                    <option value="sociedad_colectiva">Sociedad Colectiva</option>
+                    <option value="cooperativa">Cooperativa</option>
+                    <option value="microempresa">Microempresa</option>
+                    <option value="pyme">PYME</option>
+                    <option value="gran_empresa">Gran Empresa</option>
+                  </select>
+                </div>
+                
+                <div class="space-y-2">
+                  <label for="numeroEmpleados" class="block text-sm font-medium text-gray-700">
+                    Número de empleados
+                  </label>
+                  <input
+                    type="number"
+                    id="numeroEmpleados"
+                    name="numeroEmpleados"
+                    placeholder="Ej: 85"
+                    min="1"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                </div>
+              </div>
+            </div>
+            
+            <!-- Información de contacto -->
+            <div class="border-b border-gray-200 pb-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <i data-lucide="contact" class="h-5 w-5"></i>
+                Información de Contacto
+              </h3>
+              
+              <div class="space-y-2 mb-4">
+                <label for="direccion" class="block text-sm font-medium text-gray-700">
+                  Dirección
+                </label>
+                <input
+                  type="text"
+                  id="direccion"
+                  name="direccion"
+                  placeholder="Ej: Av. Principal # 67-23, Medellín"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+              </div>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                  <label for="telefonos" class="block text-sm font-medium text-gray-700">
+                    Teléfonos
+                  </label>
+                  <input
+                    type="text"
+                    id="telefonos"
+                    name="telefonos"
+                    placeholder="Ej: (604) 456 7890 - 310 987 6543"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                </div>
+                
+                <div class="space-y-2">
+                  <label for="email" class="block text-sm font-medium text-gray-700">
+                    E-mail
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    placeholder="Ej: info@seguridad.com"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                </div>
+              </div>
+            </div>
+            
+            <!-- Información digital -->
+            <div class="pb-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <i data-lucide="globe" class="h-5 w-5"></i>
+                Presencia Digital
+              </h3>
+              
+              <div class="space-y-2 mb-4">
+                <label for="web" class="block text-sm font-medium text-gray-700">
+                  Sitio WEB
+                </label>
+                <input
+                  type="url"
+                  id="web"
+                  name="web"
+                  placeholder="Ej: https://www.seguridad.com"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+              </div>
+              
+              <div class="grid md:grid-cols-3 gap-4">
+                <div class="space-y-2">
+                  <label for="facebook" class="block text-sm font-medium text-gray-700">
+                    Facebook
+                  </label>
+                  <input
+                    type="url"
+                    id="facebook"
+                    name="facebook"
+                    placeholder="Ej: https://facebook.com/seguridad"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                </div>
+                
+                <div class="space-y-2">
+                  <label for="instagram" class="block text-sm font-medium text-gray-700">
+                    Instagram
+                  </label>
+                  <input
+                    type="url"
+                    id="instagram"
+                    name="instagram"
+                    placeholder="Ej: https://instagram.com/seguridad"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                </div>
+                
+                <div class="space-y-2">
+                  <label for="tiktok" class="block text-sm font-medium text-gray-700">
+                    TikTok
+                  </label>
+                  <input
+                    type="url"
+                    id="tiktok"
+                    name="tiktok"
+                    placeholder="Ej: https://tiktok.com/@seguridad"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                </div>
+              </div>
+            </div>
+            
+            <!-- Información específica de la auditoría -->
+            <div class="border-t border-gray-200 pt-6">
+              <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <i data-lucide="clipboard-list" class="h-5 w-5"></i>
+                Información de la Auditoría
+              </h3>
+              
+              <div class="grid md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                  <label for="projectName" class="block text-sm font-medium text-gray-700">
+                    Nombre del Proyecto
+                  </label>
+                  <input
+                    type="text"
+                    id="projectName"
+                    name="projectName"
+                    placeholder="Ej: Auditoría de Seguridad 2024"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                </div>
+                
+                <div class="space-y-2">
+                  <label for="auditorName" class="block text-sm font-medium text-gray-700">
+                    Nombre del Auditor
+                  </label>
+                  <input
+                    type="text"
+                    id="auditorName"
+                    name="auditorName"
+                    placeholder="Ej: Javier López Torres"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                </div>
+              </div>
+              
+              <div class="grid md:grid-cols-2 gap-4 mt-4">
+                <div class="space-y-2">
+                  <label for="date" class="block text-sm font-medium text-gray-700">
+                    Fecha de Auditoría
+                  </label>
+                  <input
+                    type="date"
+                    id="date"
+                    name="date"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                </div>
+                
+                <div class="space-y-2">
+                  <label for="auditType" class="block text-sm font-medium text-gray-700">
+                    Tipo de Auditoría
+                  </label>
+                  <select
+                    id="auditType"
+                    name="auditType"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Seleccionar tipo</option>
+                    <option value="interna">Auditoría Interna</option>
+                    <option value="externa">Auditoría Externa</option>
+                    <option value="certificacion">Auditoría de Certificación</option>
+                    <option value="seguimiento">Auditoría de Seguimiento</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="space-y-2 mt-4">
+                <label for="scope" class="block text-sm font-medium text-gray-700">
+                  Alcance de la Auditoría
+                </label>
+                <textarea
+                  id="scope"
+                  name="scope"
+                  placeholder="Ej: Sistemas de información y gestión de accesos"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  rows="3"
+                  required
+                ></textarea>
+              </div>
+            </div>
+
+            <div class="flex gap-3 pt-6">
+              <button
+                type="submit"
+                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center"
+              >
+                <i data-lucide="clipboard-list" class="h-5 w-5 mr-2"></i>
+                Registrar Auditoría ISO 27001
+              </button>
+              <button
+                type="button"
+                class="px-4 py-3 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-300"
+                onclick="window.location.href='/IsoSelect'"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Inicializar iconos Lucide
+    lucide.createIcons();
+    
+    // Función para manejar el envío del formulario
+    function handleSubmit(event, isoType) {
+      event.preventDefault();
+      
+      const formData = new FormData(event.target);
+      const data = Object.fromEntries(formData.entries());
+      
+      console.log("Audit data:", data);
+      alert(`Auditoría ISO ${isoType} registrada exitosamente!`);
+      
+      // Aquí normalmente enviarías los datos a tu backend
+      // Por ejemplo: fetch('/api/audits', { method: 'POST', body: JSON.stringify(data) })
+    }
+  </script>
+</body>
+</html>
