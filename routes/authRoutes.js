@@ -1,35 +1,34 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db'); // Si necesitas usar la base de datos
-const { isAuthenticated } = require('../middlewares/authMiddleware'); // Utilizamos el middleware de autenticación de sesiones
-const bcrypt = require('bcrypt'); // Encriptado de contraseñas
+const db = require('../db'); // conexión sqlite3
+const { isAuthenticated } = require('../middlewares/authMiddleware');
+const bcrypt = require('bcrypt');
 
-// Rutas públicas (no requieren autenticación)
-router.get("/", function(req, res) { // Ruta principal - Página de login
+// Página de login
+router.get("/", function(req, res) {
     const alertData = req.session.alertData || {};
-    req.session.alertData = null; // Limpiar después de mostrar
+    req.session.alertData = null;
     res.render("normasIso", alertData);
 });
 
-// Ruta explícita para login/register (redirige a la principal)
 router.get("/normasIso", function(req, res) {
     res.redirect('/');
 });
 
-// Login - Método para la autenticación
+// LOGIN
 router.post('/login', async function (req, res) {
-    const email = req.body.email;  // viene de name="email"
-    const password = req.body.password; // viene de name="pass"
+    const email = req.body.email;
+    const password = req.body.password;
 
     if (email && password) {
-        db.query('SELECT * FROM usuarios WHERE correo = ?', [email], async (error, results) => {
-            if (error) {
-                console.error(error);
+        // En SQLite usamos db.get porque solo esperamos una fila
+        db.get('SELECT * FROM usuarios WHERE correo = ?', [email], async (err, user) => {
+            if (err) {
+                console.error(err);
                 return res.status(500).send("Error en el servidor.");
             }
 
-            if (results.length === 0 || !(await bcrypt.compare(password, results[0].contrasena))) {
-                // Guardar datos de alerta en sesión
+            if (!user || !(await bcrypt.compare(password, user.contrasena))) {
                 req.session.alertData = {
                     alert: true,
                     alertTitle: "Error",
@@ -38,13 +37,11 @@ router.post('/login', async function (req, res) {
                     showConfirmButton: true,
                     ruta: ""
                 };
-
                 return res.redirect('/');
             } else {
-                // Guardamos en la sesión los datos importantes
                 req.session.loggedin = true;
-                req.session.email = results[0].Correo;
-                req.session.name = results[0].Nombres;
+                req.session.email = user.correo;
+                req.session.name = user.nombre_completo;
 
                 req.session.alertData = {
                     alert: true,
@@ -71,70 +68,61 @@ router.post('/login', async function (req, res) {
     }
 });
 
-// Registro - método de registro
+// REGISTRO
 router.post('/register', async function(req, res) {
-	
-	let nombre_completo = req.body.name;
-	let email = req.body.email;
-	let password = req.body.password;
-	
-	try {
-		// Hashear la contraseña
-		const hashedPassword = await bcrypt.hash(password, 10);
+    let nombre_completo = req.body.name;
+    let email = req.body.email;
+    let password = req.body.password;
 
-		// Consulta segura con placeholders
-		let registrar = `
-			INSERT INTO usuarios
-			(nombre_completo, correo, contrasena) 
-			VALUES (?, ?, ?)`;
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-		let valores = [nombre_completo, email, hashedPassword];
+        let registrar = `
+            INSERT INTO usuarios (nombre_completo, correo, contrasena)
+            VALUES (?, ?, ?)
+        `;
+        let valores = [nombre_completo, email, hashedPassword];
 
-		db.query(registrar, valores, function(error) {
-			if (error) {
-				console.error("Error al registrar:", error);
-
-				// Guardar alerta en sesión y redirigir a "/"
-				req.session.alertData = {
-					alert: true,
-					alertTitle: "Error",
-					alertMessage: "Error al registrar los datos.",
-					alertIcon: "error",
-					showConfirmButton: true,
-					ruta: ""
-				};
-				return res.redirect('/'); 
-			} else {
-				console.log("Datos almacenados correctamente. Registro satisfactorio.");
-
-				// Guardar alerta en sesión y redirigir a "/"
-				req.session.alertData = {
-					alert: true,
-					alertTitle: "¡Registro exitoso!",
-					alertMessage: "Por favor inicia sesión.",
-					alertIcon: "success",
-					showConfirmButton: true,
-					ruta: ""
-				};
-				return res.redirect('/');
-			}
-		});
-	} catch (err) {
-		console.error("Error al procesar la solicitud:", err);
-
-		req.session.alertData = {
-			alert: true,
-			alertTitle: "Error",
-			alertMessage: "Ocurrió un error en el servidor.",
-			alertIcon: "error",
-			showConfirmButton: true,
-			ruta: ""
-		};
-		return res.redirect('/');
-	}
+        db.run(registrar, valores, function(err) {
+            if (err) {
+                console.error("Error al registrar:", err);
+                req.session.alertData = {
+                    alert: true,
+                    alertTitle: "Error",
+                    alertMessage: "Error al registrar los datos.",
+                    alertIcon: "error",
+                    showConfirmButton: true,
+                    ruta: ""
+                };
+                return res.redirect('/');
+            } else {
+                console.log("✅ Usuario registrado con ID:", this.lastID);
+                req.session.alertData = {
+                    alert: true,
+                    alertTitle: "¡Registro exitoso!",
+                    alertMessage: "Por favor inicia sesión.",
+                    alertIcon: "success",
+                    showConfirmButton: true,
+                    ruta: ""
+                };
+                return res.redirect('/');
+            }
+        });
+    } catch (err) {
+        console.error("Error al procesar la solicitud:", err);
+        req.session.alertData = {
+            alert: true,
+            alertTitle: "Error",
+            alertMessage: "Ocurrió un error en el servidor.",
+            alertIcon: "error",
+            showConfirmButton: true,
+            ruta: ""
+        };
+        return res.redirect('/');
+    }
 });
 
-// Ruta para cerrar la sesión, es necesario un botón que dirija a está ruta
+// LOGOUT
 router.get('/logout', (req, res) => {
     req.session.destroy(() => {
         res.redirect('/');
