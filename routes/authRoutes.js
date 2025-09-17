@@ -40,8 +40,11 @@ router.post('/login', async function (req, res) {
                 return res.redirect('/');
             } else {
                 req.session.loggedin = true;
-                req.session.email = user.correo;
-                req.session.name = user.nombre_completo;
+                req.session.user = {
+                id: user.id,
+                email: user.correo,
+                name: user.nombre_completo
+                };
 
                 req.session.alertData = {
                     alert: true,

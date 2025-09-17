@@ -3,17 +3,10 @@ const router = express.Router();
 const path = require('path');
 const fs = require('fs');
 const db = require('../db');
-
-// Middleware para verificar autenticación
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect('/normasIso');
-}
+const { isAuthenticated } = require('../middlewares/authMiddleware');
 
 // Obtener lista de plantillas con contenido de capacitación
-router.get('/', ensureAuthenticated, async (req, res) => {
+router.get('/', isAuthenticated, async (req, res) => {
   try {
     // Obtener plantillas con contenido de capacitación
     const plantillas = await new Promise((resolve, reject) => {
@@ -56,7 +49,7 @@ router.get('/', ensureAuthenticated, async (req, res) => {
 });
 
 // Descargar plantilla de ejemplo desde capacitación
-router.get('/descargar-ejemplo/:id', ensureAuthenticated, async (req, res) => {
+router.get('/descargar-ejemplo/:id', isAuthenticated, async (req, res) => {
   try {
     const plantilla = await new Promise((resolve, reject) => {
       db.get('SELECT * FROM plantillas WHERE id = ?', [req.params.id], (err, row) => {
@@ -94,7 +87,7 @@ router.get('/descargar-ejemplo/:id', ensureAuthenticated, async (req, res) => {
 });
 
 // Ver archivo subido por el usuario
-router.get('/ver-archivo/:id', ensureAuthenticated, async (req, res) => {
+router.get('/ver-archivo/:id', isAuthenticated, async (req, res) => {
   try {
     // Verificar que el archivo pertenece al usuario actual
     const archivo = await new Promise((resolve, reject) => {

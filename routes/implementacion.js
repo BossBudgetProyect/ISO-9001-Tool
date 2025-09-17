@@ -4,14 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const db = require('../db');
-
-// Middleware para verificar autenticación
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect('/normasIso');
-}
+const { isAuthenticated } = require('../middlewares/authMiddleware');
 
 // Configuración de multer para subir archivos
 const storage = multer.diskStorage({
@@ -48,7 +41,7 @@ const upload = multer({
 });
 
 // Obtener lista de plantillas
-router.get('/', ensureAuthenticated, async (req, res) => {
+router.get('/', isAuthenticated, async (req, res) => {
   try {
     // Obtener plantillas
     const plantillas = await new Promise((resolve, reject) => {
@@ -79,7 +72,8 @@ router.get('/', ensureAuthenticated, async (req, res) => {
     res.render('implementacion', { 
       plantillas, 
       archivosUsuario,
-      user: req.user 
+      user: req.user,
+      path
     });
   } catch (error) {
     console.error('Error al cargar la página de implementación:', error);
@@ -90,8 +84,8 @@ router.get('/', ensureAuthenticated, async (req, res) => {
   }
 });
 
-// Descargar plantilla base
-router.get('/descargar/:id', ensureAuthenticated, async (req, res) => {
+// Descargar plantilla base (versión mejorada)
+router.get('/descargar/:id', isAuthenticated, async (req, res) => {
   try {
     const plantilla = await new Promise((resolve, reject) => {
       db.get('SELECT * FROM plantillas WHERE id = ?', [req.params.id], (err, row) => {
@@ -100,36 +94,62 @@ router.get('/descargar/:id', ensureAuthenticated, async (req, res) => {
       });
     });
     
-    if (plantilla) {
-      const filePath = path.join(__dirname, '..', plantilla.archivo_path);
+    if (!plantilla) {
+      req.session.error_msg = 'Plantilla no encontrada';
+      return res.redirect('/implementacion');
+    }
+    
+    // Construir la ruta base
+    const basePath = path.join(__dirname, '..', 'plantillas', 'iso9001');
+    
+    // Intentar encontrar el archivo con diferentes patrones
+    const possiblePatterns = [
+      plantilla.archivo_path.replace('./plantillas/iso9001/', ''), // Nombre exacto de la BD
+      `${plantilla.clausula}.*.xlsx`, // Cualquier archivo que comience con la cláusula
+      `*${plantilla.clausula}*.xlsx`, // Cualquier archivo que contenga la cláusula
+    ];
+    
+    let foundFile = null;
+    
+    // Leer todos los archivos en el directorio
+    const files = fs.readdirSync(basePath);
+    
+    for (const pattern of possiblePatterns) {
+      const regex = new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\./g, '\\.') + '$');
+      foundFile = files.find(file => regex.test(file));
       
-      // Verificar si el archivo existe
-      if (fs.existsSync(filePath)) {
-        res.download(filePath, `${plantilla.clausula}_${plantilla.nombre}.xlsx`, (err) => {
-          if (err) {
-            console.error('Error al descargar:', err);
-            req.flash('error_msg', 'Error al descargar la plantilla');
-            res.redirect('/implementacion');
-          }
-        });
-      } else {
-        console.error('Archivo no encontrado:', filePath);
-        req.flash('error_msg', 'Plantilla no disponible en este momento');
-        res.redirect('/implementacion');
+      if (foundFile) {
+        break;
       }
+    }
+    
+    if (foundFile) {
+      const filePath = path.join(basePath, foundFile);
+      const downloadName = `${plantilla.clausula}_${plantilla.nombre}.xlsx`;
+      
+      res.download(filePath, downloadName, (err) => {
+        if (err) {
+          console.error('Error al descargar:', err);
+          req.session.error_msg = 'Error al descargar la plantilla';
+          res.redirect('/implementacion');
+        }
+      });
     } else {
-      req.flash('error_msg', 'Plantilla no encontrada');
+      console.error('Archivo no encontrado para cláusula:', plantilla.clausula);
+      console.error('Archivos disponibles:', files);
+      
+      req.session.error_msg = `Plantilla para cláusula ${plantilla.clausula} no encontrada. Contacte al administrador.`;
       res.redirect('/implementacion');
     }
   } catch (error) {
     console.error('Error al descargar la plantilla:', error);
-    req.flash('error_msg', 'Error al descargar la plantilla');
+    req.session.error_msg = 'Error al descargar la plantilla';
     res.redirect('/implementacion');
   }
 });
 
 // Subir plantilla completada
-router.post('/subir/:id', ensureAuthenticated, upload.single('archivo'), async (req, res) => {
+router.post('/subir/:id', isAuthenticated, upload.single('archivo'), async (req, res) => {
   try {
     if (!req.file) {
       req.flash('error_msg', 'No se ha seleccionado ningún archivo');
@@ -193,7 +213,7 @@ router.post('/subir/:id', ensureAuthenticated, upload.single('archivo'), async (
 });
 
 // Eliminar archivo subido
-router.post('/eliminar/:id', ensureAuthenticated, async (req, res) => {
+router.post('/eliminar/:id', isAuthenticated, async (req, res) => {
   try {
     // Verificar que el archivo pertenece al usuario actual
     const archivo = await new Promise((resolve, reject) => {

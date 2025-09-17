@@ -4,6 +4,7 @@ const db = require('./db'); // Conexión a la base de datos local
 const bcrypt = require('bcrypt'); // Encriptado de contraseñas
 const session = require('express-session'); // Manejo de sesiones
 const path = require('path');
+const flash = require('connect-flash'); // ← Añade esto para flash messages
 
 // Instanciamos app y creamos una constante para el puerto por si cambia
 const app = express();
@@ -16,12 +17,24 @@ app.use(session({
     saveUninitialized: false
 }));
 
+// Configurar flash messages ← Añade esto
+app.use(flash());
+app.use((req, res, next) => {
+  res.locals.messages = req.flash();
+  next();
+});
+
 // Configurar EJS
 app.set('view engine', 'ejs');
 
 // Permitimos almacenar los datos para que no queden como indefinidos / Middleware para leer datos de formulario
 app.use(express.urlencoded({extended:true}));
 app.use(express.json());
+
+// Servir archivos estáticos
+app.use(express.static('public'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/plantillas', express.static('plantillas'));
 
 // Llamamos las rutas de otherRoutes
 const isoRoutes = require('./routes/isoRoutes');
@@ -31,22 +44,25 @@ app.use('/', isoRoutes);
 const authRoutes = require('./routes/authRoutes');
 app.use('/', authRoutes);
 
-// Después de tus otras importaciones
-const implementacionRoutes = require('./routes/implementacionRoutes');
-app.use('/', implementacionRoutes);
+// Configurar rutas con prefijos específicos ← CORRECCIÓN IMPORTANTE
+const implementacionRoutes = require('./routes/implementacion');
+app.use('/implementacion', implementacionRoutes); // ← Cambiado de '/' a '/implementacion'
 
-const capacitacionRoutes = require('./routes/capacitacionRoutes');
-app.use('/', capacitacionRoutes);
+const capacitacionRoutes = require('./routes/capacitacion');
+app.use('/capacitacion', capacitacionRoutes); // ← Cambiado de '/' a '/capacitacion'
 
-// Servir archivos estáticos desde la carpeta uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Ruta de prueba para verificar que el servidor funciona
+app.get('/test', (req, res) => {
+  res.send('✅ Servidor funcionando correctamente');
+});
 
-/*
-// Servir archivos estáticos desde 'public' (CSS, imágenes, JS frontend)
-app.use(express.static('public'));
-*/
-
-app.use('/plantillas', express.static('plantillas'));
+// Middleware para manejar rutas no encontradas
+app.use((req, res) => {
+  res.status(404).render('error', { 
+    message: 'Página no encontrada',
+    error: { status: 404 }
+  });
+});
 
 // Localhost:
 app.listen(port, () => {

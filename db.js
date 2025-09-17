@@ -145,7 +145,7 @@ db.serialize(() => {
           "4.3", 
           "Alcance del SGC", 
           "Plantilla para definir el alcance del Sistema de Gestión de Calidad",
-          "./plantillas/iso9001/4.3_alcance_sgc.xlsx",
+          "./plantillas/iso9001/4.3.+Plantilla+Alcance+formato.xlsx",
           "En esta capacitación aprenderá a definir adecuadamente el alcance de su Sistema de Gestión de Calidad según los requisitos de la norma ISO 9001:2015. El alcance debe definir los límites y aplicabilidad del SGC, considerando el contexto de la organización y las necesidades de las partes interesadas.",
           1
         ],
