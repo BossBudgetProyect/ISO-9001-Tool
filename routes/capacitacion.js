@@ -16,10 +16,10 @@ router.get('/', isAuthenticated, async (req, res) => {
       });
     });
 
-    // Obtener archivos subidos por el usuario
+    // Obtener archivos subidos por el usuario - ACTUALIZAR ESTA CONSULTA
     const archivosUsuario = await new Promise((resolve, reject) => {
       db.all(`
-        SELECT au.plantilla_id, au.archivo_path, au.fecha_subida 
+        SELECT au.id, au.plantilla_id, au.archivo_path, au.fecha_subida 
         FROM archivos_usuario au 
         WHERE au.usuario_id = ?
       `, [req.user.id], (err, rows) => {
@@ -48,40 +48,44 @@ router.get('/', isAuthenticated, async (req, res) => {
   }
 });
 
-// Descargar plantilla de ejemplo desde capacitación
-router.get('/descargar-ejemplo/:id', isAuthenticated, async (req, res) => {
+// Descargar archivo del usuario
+router.get('/descargar-archivo/:id', isAuthenticated, async (req, res) => {
   try {
-    const plantilla = await new Promise((resolve, reject) => {
-      db.get('SELECT * FROM plantillas WHERE id = ?', [req.params.id], (err, row) => {
+    // Verificar que el archivo pertenece al usuario actual
+    const archivo = await new Promise((resolve, reject) => {
+      db.get(`
+        SELECT au.*, p.clausula, p.nombre 
+        FROM archivos_usuario au 
+        JOIN plantillas p ON au.plantilla_id = p.id 
+        WHERE au.id = ? AND au.usuario_id = ?
+      `, [req.params.id, req.user.id], (err, row) => {
         if (err) reject(err);
         else resolve(row);
       });
     });
     
-    if (plantilla) {
-      const filePath = path.join(__dirname, '..', plantilla.archivo_path);
-      
-      // Verificar si el archivo existe
-      if (fs.existsSync(filePath)) {
-        res.download(filePath, `${plantilla.clausula}_${plantilla.nombre}_ejemplo.xlsx`, (err) => {
-          if (err) {
-            console.error('Error al descargar:', err);
-            req.flash('error_msg', 'Error al descargar la plantilla de ejemplo');
-            res.redirect('/capacitacion');
-          }
-        });
-      } else {
-        console.error('Archivo no encontrado:', filePath);
-        req.flash('error_msg', 'Plantilla de ejemplo no disponible');
-        res.redirect('/capacitacion');
-      }
+    if (!archivo) {
+      req.flash('error_msg', 'Archivo no encontrado');
+      return res.redirect('/capacitacion');
+    }
+    
+    // Verificar si el archivo existe
+    if (fs.existsSync(archivo.archivo_path)) {
+      res.download(archivo.archivo_path, `${archivo.clausula}_${archivo.nombre}_completado.xlsx`, (err) => {
+        if (err) {
+          console.error('Error al descargar:', err);
+          req.flash('error_msg', 'Error al descargar el archivo');
+          res.redirect('/capacitacion');
+        }
+      });
     } else {
-      req.flash('error_msg', 'Plantilla no encontrada');
+      console.error('Archivo no encontrado:', archivo.archivo_path);
+      req.flash('error_msg', 'El archivo ya no está disponible');
       res.redirect('/capacitacion');
     }
   } catch (error) {
-    console.error('Error al descargar la plantilla de ejemplo:', error);
-    req.flash('error_msg', 'Error al descargar la plantilla de ejemplo');
+    console.error('Error al descargar el archivo:', error);
+    req.flash('error_msg', 'Error al descargar el archivo');
     res.redirect('/capacitacion');
   }
 });

@@ -1,5 +1,5 @@
 // update-paths.js
-const db = require('./db');
+/*const db = require('./db');
 
 // Actualizar las rutas con los nombres reales de tus archivos
 const updates = [
@@ -34,4 +34,57 @@ updates.forEach(update => {
       }
     }
   );
-});
+});*/
+
+// update-db-paths.js
+const db = require('./db');
+const fs = require('fs');
+const path = require('path');
+
+async function updateDatabasePaths() {
+  try {
+    // Obtener todas las plantillas
+    const plantillas = await new Promise((resolve, reject) => {
+      db.all('SELECT * FROM plantillas', (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+
+    const basePath = path.join(__dirname, 'plantillas', 'iso9001');
+    const files = fs.readdirSync(basePath);
+    
+    console.log('Actualizando rutas en la base de datos...');
+    
+    for (const plantilla of plantillas) {
+      // Buscar archivo que coincida con la cláusula
+      const matchingFile = files.find(file => file.includes(plantilla.clausula));
+      
+      if (matchingFile) {
+        const newPath = `./plantillas/iso9001/${matchingFile}`;
+        
+        // Actualizar la base de datos
+        await new Promise((resolve, reject) => {
+          db.run(
+            'UPDATE plantillas SET archivo_path = ? WHERE id = ?',
+            [newPath, plantilla.id],
+            function(err) {
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+        
+        console.log(`✅ ${plantilla.clausula}: ${matchingFile}`);
+      } else {
+        console.log(`❌ ${plantilla.clausula}: NO ENCONTRADO`);
+      }
+    }
+    
+    console.log('Actualización completada.');
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+updateDatabasePaths();

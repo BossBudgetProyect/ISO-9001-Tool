@@ -85,6 +85,7 @@ router.get('/', isAuthenticated, async (req, res) => {
 });
 
 // Descargar plantilla base (versión mejorada)
+// Descargar plantilla base - VERSIÓN SIMPLIFICADA
 router.get('/descargar/:id', isAuthenticated, async (req, res) => {
   try {
     const plantilla = await new Promise((resolve, reject) => {
@@ -99,34 +100,11 @@ router.get('/descargar/:id', isAuthenticated, async (req, res) => {
       return res.redirect('/implementacion');
     }
     
-    // Construir la ruta base
-    const basePath = path.join(__dirname, '..', 'plantillas', 'iso9001');
+    const filePath = path.join(__dirname, '..', plantilla.archivo_path);
+    const downloadName = `${plantilla.clausula}_${plantilla.nombre}.xlsx`;
     
-    // Intentar encontrar el archivo con diferentes patrones
-    const possiblePatterns = [
-      plantilla.archivo_path.replace('./plantillas/iso9001/', ''), // Nombre exacto de la BD
-      `${plantilla.clausula}.*.xlsx`, // Cualquier archivo que comience con la cláusula
-      `*${plantilla.clausula}*.xlsx`, // Cualquier archivo que contenga la cláusula
-    ];
-    
-    let foundFile = null;
-    
-    // Leer todos los archivos en el directorio
-    const files = fs.readdirSync(basePath);
-    
-    for (const pattern of possiblePatterns) {
-      const regex = new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\./g, '\\.') + '$');
-      foundFile = files.find(file => regex.test(file));
-      
-      if (foundFile) {
-        break;
-      }
-    }
-    
-    if (foundFile) {
-      const filePath = path.join(basePath, foundFile);
-      const downloadName = `${plantilla.clausula}_${plantilla.nombre}.xlsx`;
-      
+    // Verificar si el archivo existe
+    if (fs.existsSync(filePath)) {
       res.download(filePath, downloadName, (err) => {
         if (err) {
           console.error('Error al descargar:', err);
@@ -135,10 +113,8 @@ router.get('/descargar/:id', isAuthenticated, async (req, res) => {
         }
       });
     } else {
-      console.error('Archivo no encontrado para cláusula:', plantilla.clausula);
-      console.error('Archivos disponibles:', files);
-      
-      req.session.error_msg = `Plantilla para cláusula ${plantilla.clausula} no encontrada. Contacte al administrador.`;
+      console.error('Archivo no encontrado:', filePath);
+      req.session.error_msg = `Plantilla no disponible. Contacte al administrador.`;
       res.redirect('/implementacion');
     }
   } catch (error) {
