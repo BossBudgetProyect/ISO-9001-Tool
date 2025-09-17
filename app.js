@@ -3,6 +3,7 @@ const express = require('express');
 const db = require('./db'); // Conexión a la base de datos local
 const bcrypt = require('bcrypt'); // Encriptado de contraseñas
 const session = require('express-session'); // Manejo de sesiones
+const path = require('path');
 
 // Instanciamos app y creamos una constante para el puerto por si cambia
 const app = express();
@@ -29,6 +30,16 @@ app.use('/', isoRoutes);
 // Llamamos las rutas de authRoutes
 const authRoutes = require('./routes/authRoutes');
 app.use('/', authRoutes);
+
+// Después de tus otras importaciones
+const implementacionRoutes = require('./routes/implementacionRoutes');
+app.use('/', implementacionRoutes);
+
+const capacitacionRoutes = require('./routes/capacitacionRoutes');
+app.use('/', capacitacionRoutes);
+
+// Servir archivos estáticos desde la carpeta uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 /*
 // Servir archivos estáticos desde 'public' (CSS, imágenes, JS frontend)
