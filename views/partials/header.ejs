@@ -8,16 +8,24 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/dashboard">Dashboard</a>
+                        <a class="nav-link" href="/IsoSelect" id="nav-dashboard">
+                            Página Principal
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/implementacion">Implementación</a>
+                        <a class="nav-link" href="/implementacion" id="nav-implementacion">
+                            Implementación
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/capacitacion">Capacitación</a>
+                        <a class="nav-link" href="/capacitacion" id="nav-capacitacion">
+                            Capacitación
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/auditoria">Auditoría</a>
+                        <a class="nav-link" href="/auditoria" id="nav-auditoria">
+                            Auditoría
+                        </a>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
@@ -36,3 +44,34 @@
         </div>
     </nav>
 </header>
+
+<script>
+// Activar el enlace de navegación correspondiente a la página actual
+document.addEventListener('DOMContentLoaded', function() {
+    const currentPath = window.location.pathname;
+    const navLinks = {
+        '/IsoSelect': 'nav-dashboard',
+        '/implementacion': 'nav-implementacion',
+        '/capacitacion': 'nav-capacitacion',
+        '/auditoria': 'nav-auditoria'
+    };
+    
+    // Activar el enlace correspondiente
+    Object.keys(navLinks).forEach(path => {
+        if (currentPath === path || currentPath.startsWith(path + '/')) {
+            const link = document.getElementById(navLinks[path]);
+            if (link) {
+                link.classList.add('active');
+            }
+        }
+    });
+    
+    // Activar dashboard si estamos en la raíz
+    if (currentPath === '/') {
+        const dashboardLink = document.getElementById('nav-dashboard');
+        if (dashboardLink) {
+            dashboardLink.classList.add('active');
+        }
+    }
+});
+</script>

@@ -8,10 +8,10 @@ const bcrypt = require('bcrypt');
 router.get("/", function(req, res) {
     const alertData = req.session.alertData || {};
     req.session.alertData = null;
-    res.render("normasIso", alertData);
+    res.render("login", alertData);
 });
 
-router.get("/normasIso", function(req, res) {
+router.get("/login", function(req, res) {
     res.redirect('/');
 });
 
