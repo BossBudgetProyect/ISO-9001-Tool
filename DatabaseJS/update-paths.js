@@ -37,7 +37,7 @@ updates.forEach(update => {
 });*/
 
 // update-db-paths.js
-const db = require('./db');
+const db = require('../db');
 const fs = require('fs');
 const path = require('path');
 

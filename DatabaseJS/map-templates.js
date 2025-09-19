@@ -1,7 +1,7 @@
 // map-templates.js
 const fs = require('fs');
 const path = require('path');
-const db = require('./db');
+const db = require('../db');
 
 async function mapTemplates() {
   try {
