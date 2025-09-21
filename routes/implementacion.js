@@ -84,7 +84,6 @@ router.get('/', isAuthenticated, async (req, res) => {
   }
 });
 
-// Descargar plantilla base (versión mejorada)
 // Descargar plantilla base - VERSIÓN SIMPLIFICADA
 router.get('/descargar/:id', isAuthenticated, async (req, res) => {
   try {
@@ -235,6 +234,90 @@ router.post('/eliminar/:id', isAuthenticated, async (req, res) => {
     console.error('Error al eliminar el archivo:', error);
     req.flash('error_msg', 'Error al eliminar el archivo');
     res.redirect('/implementacion');
+  }
+});
+
+// Ruta para verificar si existe un archivo subido por el usuario
+router.get('/check-archivo/:plantillaId', isAuthenticated, async (req, res) => {
+  try {
+    const plantillaId = req.params.plantillaId;
+    
+    // Verificar si existe un archivo subido para esta plantilla por este usuario
+    const archivo = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM archivos_usuario WHERE usuario_id = ? AND plantilla_id = ?',
+        [req.user.id, plantillaId],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+    
+    if (archivo) {
+      res.json({
+        existe: true,
+        archivo: {
+          id: archivo.id,
+          nombre_archivo: path.basename(archivo.archivo_path),
+          fecha_subida: archivo.fecha_subida
+        },
+        mensaje: 'Archivo encontrado'
+      });
+    } else {
+      res.json({
+        existe: false,
+        archivo: null,
+        mensaje: 'No se ha subido un archivo para esta plantilla'
+      });
+    }
+  } catch (error) {
+    console.error('Error al verificar archivo:', error);
+    res.status(500).json({
+      existe: false,
+      archivo: null,
+      mensaje: 'Error al verificar el archivo'
+    });
+  }
+});
+
+// Ruta para descargar archivo subido por el usuario
+router.get('/descargar-archivo/:archivoId', isAuthenticated, async (req, res) => {
+  try {
+    const archivoId = req.params.archivoId;
+    
+    // Verificar que el archivo pertenece al usuario actual
+    const archivo = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT * FROM archivos_usuario WHERE id = ? AND usuario_id = ?',
+        [archivoId, req.user.id],
+        (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        }
+      );
+    });
+    
+    if (!archivo) {
+      return res.status(404).send('Archivo no encontrado');
+    }
+    
+    // Verificar si el archivo existe físicamente
+    if (!fs.existsSync(archivo.archivo_path)) {
+      return res.status(404).send('El archivo no existe en el servidor');
+    }
+    
+    // Descargar el archivo
+    const filename = path.basename(archivo.archivo_path);
+    res.download(archivo.archivo_path, filename, (err) => {
+      if (err) {
+        console.error('Error al descargar el archivo:', err);
+        res.status(500).send('Error al descargar el archivo');
+      }
+    });
+  } catch (error) {
+    console.error('Error al descargar archivo:', error);
+    res.status(500).send('Error al descargar el archivo');
   }
 });
 

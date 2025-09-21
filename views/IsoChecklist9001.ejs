@@ -8,7 +8,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
   <style>
     .progress-bar {
@@ -20,21 +20,6 @@
     .checklist-item:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    }
-    .training-panel {
-      transition: transform 0.3s ease, opacity 0.3s ease;
-    }
-    .training-content {
-      max-height: calc(100vh - 200px);
-      overflow-y: auto;
-    }
-    .excel-placeholder {
-      background: linear-gradient(45deg, #217346 0%, #217346 25%, #1a5c38 25%, #1a5c38 50%, #217346 50%, #217346 75%, #1a5c38 75%, #1a5c38 100%);
-      background-size: 20px 20px;
-    }
-    .sticky-panel {
-      position: sticky;
-      top: 20px;
     }
     .highlighted-item {
       background-color: #f0f9ff;
@@ -65,11 +50,27 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-	
-	#excel-modal {
-	  transition: opacity 0.3s ease;
-	}
-	
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background-color: white;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
   </style>
 </head>
 <body class="min-h-screen bg-gray-50">
@@ -77,6 +78,46 @@
   <div class="pdf-loading" id="pdf-loading">
     <div class="spinner"></div>
     <p class="mt-4 text-lg font-medium text-gray-700">Generando informe PDF...</p>
+  </div>
+
+  <!-- Modal para Capacitación -->
+  <div class="modal-overlay" id="training-modal">
+    <div class="modal-content">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-900" id="modal-title">Capacitación</h3>
+          <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+            <i data-lucide="x" class="h-6 w-6"></i>
+          </button>
+        </div>
+        
+        <div class="mb-6">
+          <h4 class="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <i data-lucide="file-text" class="h-5 w-5"></i>
+            Información de la Cláusula
+          </h4>
+          <div id="modal-info" class="prose max-w-none text-gray-700"></div>
+        </div>
+
+        <div>
+          <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <i data-lucide="file-spreadsheet" class="h-5 w-5"></i>
+            Plantilla de Implementación
+          </h4>
+          
+          <div id="template-status" class="mb-4 p-4 rounded-lg bg-gray-100">
+            <p class="text-gray-600" id="status-message">Verificando estado de la plantilla...</p>
+          </div>
+          
+          <div class="flex flex-col gap-2">
+            <button id="download-template" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center gap-2">
+              <i data-lucide="download" class="h-4 w-4"></i>
+              Descargar Plantilla
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="container mx-auto px-4 py-8 max-w-7xl">
@@ -161,9 +202,9 @@
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex flex-col lg:flex-row gap-6">
+    <div class="flex flex-col">
       <!-- Checklist Panel -->
-      <div class="w-full lg:w-2/3">
+      <div class="w-full">
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b border-gray-200">
             <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
@@ -225,62 +266,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Training Panel - Ahora siempre visible pero con contenido contextual -->
-      <div class="w-full lg:w-1/3">
-        <div class="bg-white rounded-lg shadow training-panel sticky-panel">
-          <div class="p-6 border-b border-gray-200">
-            <div class="flex justify-between items-center">
-              <h3 class="text-xl font-bold text-gray-900">Capacitación</h3>
-              <button id="close-training" class="text-gray-400 hover:text-gray-600">
-                <i data-lucide="x" class="h-5 w-5"></i>
-              </button>
-            </div>
-            <p class="text-gray-600 mt-1" id="training-subtitle">Selecciona una cláusula para ver detalles</p>
-          </div>
-
-          <div class="p-6 training-content">
-            <div id="training-content-area">
-              <div class="text-center py-8" id="training-placeholder">
-                <i data-lucide="book-open" class="h-12 w-12 text-gray-400 mx-auto mb-4"></i>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">Panel de Capacitación</h3>
-                <p class="text-gray-600">Haz clic en cualquier cláusula para ver información detallada y plantillas de implementación</p>
-              </div>
-
-              <div class="hidden" id="training-details">
-                <div class="mb-6">
-                  <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <i data-lucide="file-text" class="h-5 w-5"></i>
-                    Información de la Cláusula
-                  </h4>
-                  <div id="training-info" class="prose max-w-none"></div>
-                </div>
-
-                <div>
-                  <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <i data-lucide="file-spreadsheet" class="h-5 w-5"></i>
-                    Plantilla de Implementación
-                  </h4>
-                  <div class="excel-placeholder rounded-lg p-4 text-center text-white mb-4" id="excel-placeholder">
-                    <i data-lucide="file-spreadsheet" class="h-12 w-12 mx-auto mb-2"></i>
-                    <p class="text-sm">Plantilla Excel para esta cláusula</p>
-                  </div>
-                  <div class="flex flex-col gap-2">
-                    <button id="open-excel" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center gap-2">
-                      <i data-lucide="external-link" class="h-4 w-4"></i>
-                      Abrir Plantilla
-                    </button>
-                    <button id="download-excel" class="w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center justify-center gap-2">
-                      <i data-lucide="download" class="h-4 w-4"></i>
-                      Descargar Plantilla
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -313,6 +298,7 @@
         compliance: "",
         observations: "",
         clause: "4.3",
+        plantillaId: "1"
       },
       {
         id: "2",
@@ -324,6 +310,7 @@
         compliance: "",
         observations: "",
         clause: "4.4",
+        plantillaId: "2"
       },
       {
         id: "3",
@@ -335,6 +322,7 @@
         compliance: "",
         observations: "",
         clause: "5.1",
+        plantillaId: "3"
       },
       {
         id: "4",
@@ -346,6 +334,7 @@
         compliance: "",
         observations: "",
         clause: "6.2",
+        plantillaId: "4"
       },
       {
         id: "5",
@@ -357,6 +346,7 @@
         compliance: "",
         observations: "",
         clause: "6.3",
+        plantillaId: "5"
       },
       {
         id: "6",
@@ -368,6 +358,7 @@
         compliance: "",
         observations: "",
         clause: "7.1.4",
+        plantillaId: "6"
       },
       {
         id: "7",
@@ -379,6 +370,7 @@
         compliance: "",
         observations: "",
         clause: "7.1.6",
+        plantillaId: "7"
       },
       {
         id: "8",
@@ -390,6 +382,7 @@
         compliance: "",
         observations: "",
         clause: "7.2",
+        plantillaId: "8"
       },
       {
         id: "9",
@@ -401,6 +394,7 @@
         compliance: "",
         observations: "",
         clause: "7.3",
+        plantillaId: "9"
       },
       {
         id: "10",
@@ -412,10 +406,11 @@
         compliance: "",
         observations: "",
         clause: "7.5",
+        plantillaId: "10"
       },
       {
         id: "11",
-        title: "Planificación y Control Operacional",
+        title: "Planificación and Control Operacional",
         description: "Planificar, implementar y controlar los procesos necesarios para cumplir los requisitos",
         completed: false,
         priority: "high",
@@ -423,6 +418,7 @@
         compliance: "",
         observations: "",
         clause: "8.1",
+        plantillaId: "11"
       },
       {
         id: "12",
@@ -434,6 +430,7 @@
         compliance: "",
         observations: "",
         clause: "8.2",
+        plantillaId: "12"
       },
       {
         id: "13",
@@ -445,6 +442,7 @@
         compliance: "",
         observations: "",
         clause: "8.4",
+        plantillaId: "13"
       },
       {
         id: "14",
@@ -456,6 +454,7 @@
         compliance: "",
         observations: "",
         clause: "8.5.2",
+        plantillaId: "14"
       },
       {
         id: "15",
@@ -467,6 +466,7 @@
         compliance: "",
         observations: "",
         clause: "8.6",
+        plantillaId: "15"
       },
       {
         id: "16",
@@ -478,6 +478,7 @@
         compliance: "",
         observations: "",
         clause: "8.7",
+        plantillaId: "16"
       },
       {
         id: "17",
@@ -489,6 +490,7 @@
         compliance: "",
         observations: "",
         clause: "9.1",
+        plantillaId: "17"
       },
     ];
 
@@ -512,8 +514,7 @@
             <li>Documento del alcance del SGC</li>
             <li>Comunicación del alcance a las partes interesadas</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/4.3.+Plantilla+Alcance+formato.xlsx"
+        `
       },
       "4.4": {
         title: "Sistema de Gestión de la Calidad y sus Procesos - Cláusula 4.4",
@@ -534,8 +535,7 @@
             <li>Mapa de procesos</li>
             <li>Indicadores de desempeño de procesos</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/4.4.+Ficha+de+procesos+Formato.xlsx"
+        `
       },
       "5.1": {
         title: "Liderazgo y Compromiso - Cláusula 5.1",
@@ -556,8 +556,7 @@
             <li>Declaraciones de compromiso de la alta dirección</li>
             <li>Planes de comunicación y revisión de objetivos</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/5.1.+Check+list+Liderazgo+Actual+Formato.xlsx"
+        `
       },
       "6.2": {
         title: "Objetivos de la Calidad - Cláusula 6.2",
@@ -578,8 +577,7 @@
             <li>Listado de objetivos documentados</li>
             <li>Seguimiento y revisión de resultados</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/6.2+Objetivos+de+calidad.xlsx"
+        `
       },
       "6.3": {
         title: "Planificación de los Cambios - Cláusula 6.3",
@@ -599,8 +597,7 @@
             <li>Planes de cambio documentados</li>
             <li>Registros de evaluación de impacto</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/6.3.+Planificación+de+los+cambios+formato.xlsx"
+        `
       },
       "7.1.4": {
         title: "Ambiente para la Operación de los Procesos - Cláusula 7.1.4",
@@ -620,19 +617,18 @@
             <li>Registros de condiciones ambientales</li>
             <li>Políticas de seguridad y salud en el trabajo</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/7.1.4.+Formato+Medición+de+condiciones+físicas.xlsx"
+        `
       },
       "7.1.6": {
         title: "Conocimientos de la Organización - Cláusula 7.1.6",
         content: `
           <h3 class="text-lg font-semibold mb-2">Gestión del Conocimiento</h3>
-          <p class="mb-4"><strong>Objetivo:</strong> Mantern y poner a disposición los conocimientos necesarios para operar los procesos y asegurar la conformidad.</p>
+          <p class="mb-4"><strong>Objetivo:</strong> Mantener y poner a disposición los conocimientos necesarios para operar los procesos y asegurar la conformidad.</p>
 
           <h4 class="font-medium mb-2">Requisitos Clave:</h4>
           <ul class="list-disc list-inside mb-4">
             <li>Identificar conocimientos necesarios</li>
-            <li>Acceso to fuentes internas y externas de conocimiento</li>
+            <li>Acceso a fuentes internas y externas de conocimiento</li>
             <li>Actualizar y compartir conocimiento</li>
           </ul>
 
@@ -641,8 +637,7 @@
             <li>Base de datos de conocimiento</li>
             <li>Planes de capacitación</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/7.1.6.+Formato-Conocimientos+de+la+organización.xlsx"
+        `
       },
       "7.2": {
         title: "Competencia - Cláusula 7.2",
@@ -662,8 +657,7 @@
             <li>Matriz de competencias</li>
             <li>Registros de formación</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/7.2.+Formato-+Competencia.xlsx"
+        `
       },
       "7.3": {
         title: "Toma de Conciencia - Cláusula 7.3",
@@ -683,8 +677,7 @@
             <li>Registros de inducción y capacitaciones</li>
             <li>Encuestas de conciencia del personal</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/7.3.+Formato++-+Toma+de+conciencia.xlsx"
+        `
       },
       "7.5": {
         title: "Información Documentada - Cláusula 7.5",
@@ -704,8 +697,7 @@
             <li>Procedimientos documentados</li>
             <li>Registros de control documental</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/7.5.+Formato+-+Información+documentada.xlsx"
+        `
       },
       "8.1": {
         title: "Planificación y Control Operacional - Cláusula 8.1",
@@ -725,8 +717,7 @@
             <li>Planes operacionales documentados</li>
             <li>Registros de control de cambios</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/8.1.+Planificación+y+control+operacional.xlsx"
+        `
       },
       "8.2": {
         title: "Requisitos para los Productos y Servicios - Cláusula 8.2",
@@ -746,8 +737,7 @@
             <li>Contratos revisados</li>
             <li>Registros de comunicación con clientes</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/8.2.+Requisitos+para+los+productos+y+servicios+-+Formato.xlsx"
+        `
       },
       "8.4": {
         title: "Control de Proveedores Externos - Cláusula 8.4",
@@ -767,8 +757,7 @@
             <li>Evaluaciones de proveedores</li>
             <li>Registros de seguimiento de desempeño</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/8.4+Control+de+los+procesos+externos.xlsx"
+        `
       },
       "8.5.2": {
         title: "Identificación y Trazabilidad - Cláusula 8.5.2",
@@ -788,8 +777,7 @@
             <li>Etiquetas de productos o lotes</li>
             <li>Registros de trazabilidad</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/8.5.2.+Identificación+y+Trazabilidad+-+ADN+Lean.xlsx"
+        `
       },
       "8.6": {
         title: "Liberación de Productos y Servicios - Cláusula 8.6",
@@ -809,8 +797,7 @@
             <li>Registros de inspección y pruebas</li>
             <li>Firmas de autorización de liberación</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/8.6.+Liberación+de+los+productos+y+servicios+formato.xlsx"
+        `
       },
       "8.7": {
         title: "Control de Salidas No Conformes - Cláusula 8.7",
@@ -830,10 +817,9 @@
           <ul class="list-disc list-inside">
             <li>Registros de no conformidades</li>
             <li>Acciones correctivas documentadas</li>
-            <li>Registros de reinspección or revalidación</li>
+            <li>Registros de reinspección o revalidación</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/8.7.+Control+de+Salidas+no+conformes+Formato.xlsx"
+        `
       },
       "9.1": {
         title: "Seguimiento, Medición, Análisis y Evaluación - Cláusula 9.1",
@@ -855,8 +841,7 @@
             <li>Encuestas de satisfacción del cliente</li>
             <li>Informes de análisis de datos</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/9.1.+Seguimiento,+medición,+análisis+y+evaluación++-+Formato.xlsx"
+        `
       },
       "default": {
         title: "Capacitación ISO 9001",
@@ -870,8 +855,7 @@
             <li>Guías de implementación</li>
             <li>Ejemplos de mejores prácticas</li>
           </ul>
-        `,
-        excelUrl: "/plantillas/general.xlsx"
+        `
       }
     };
 
@@ -881,7 +865,8 @@
       filterPriority: "all",
       filterCategory: "all",
       selectedClause: null,
-      selectedItemId: null
+      selectedItemId: null,
+      currentPlantillaId: null
     };
 
     // Funciones de utilidad
@@ -1003,11 +988,8 @@
                 <div class="flex-1 space-y-2">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
-                      <button onclick="openTraining('${item.clause}', '${item.title}', '${item.id}')" class="text-base font-medium cursor-pointer hover:text-blue-600 transition-colors ${item.completed ? 'line-through text-gray-400' : 'text-gray-900'} text-left">
+                      <button onclick="openTrainingModal('${item.clause}', '${item.title}', '${item.id}', '${item.plantillaId}')" class="text-base font-medium cursor-pointer hover:text-blue-600 transition-colors ${item.completed ? 'line-through text-gray-400' : 'text-gray-900'} text-left">
                         ${item.title}
-                      </button>
-                      <button onclick="openTraining('${item.clause}', '${item.title}', '${item.id}')" class="h-8 w-8 p-0 hover:bg-blue-50 rounded-md">
-                        <i data-lucide="book-open" class="h-4 w-4 text-blue-600"></i>
                       </button>
                     </div>
                     <div class="flex items-center gap-2">
@@ -1109,129 +1091,112 @@
         item.observations = observations;
       }
     }
-	
-	
-    // Funciones para el modal de Excel
-	function openExcelModal(filename, excelUrl) {
-	  const modal = document.getElementById('excel-modal');
-	  const title = document.getElementById('excel-modal-title');
-	  const content = document.getElementById('excel-modal-content');
-	  const downloadLink = document.getElementById('excel-download-link');
-	  
-	  title.textContent = `Plantilla: ${filename}`;
-	  downloadLink.href = excelUrl;
-	  downloadLink.download = filename;
-	  
-	  // Mostrar modal
-	  modal.classList.remove('hidden');
-	  
-	  // Intentar cargar con el método principal
-	  loadExcelPreview(excelUrl, content);
-	  
-	  // Si falla después de 5 segundos, mostrar alternativa
-	  setTimeout(() => {
-		if (content.innerHTML.includes('Cargando previsualización')) {
-		  loadExcelFallbackPreview(excelUrl, content);
-		}
-	  }, 5000);
-	}
 
-	function closeExcelModal() {
-	  document.getElementById('excel-modal').classList.add('hidden');
-	}
+    // Función para verificar si existe una plantilla subida por el usuario
+    async function checkUserTemplate(plantillaId) {
+      try {
+        // Hacer una petición al servidor para verificar si el usuario subió un archivo
+        const response = await fetch(`/implementacion/check-archivo/${plantillaId}`);
+        
+        if (!response.ok) {
+          throw new Error('Error al verificar plantilla');
+        }
+        
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error:', error);
+        return {
+          existe: false,
+          archivo: null,
+          mensaje: 'Error al verificar la plantilla'
+        };
+      }
+    }
 
-	function loadExcelPreview(excelUrl, container) {
-	  // Usar el visor de Google para archivos Excel
-	  const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(window.location.origin + excelUrl)}&embedded=true`;
-	  
-	  container.innerHTML = `
-		<div class="h-full">
-		  <iframe 
-			src="${googleViewerUrl}" 
-			class="w-full h-full border-0" 
-			frameborder="0"
-			onload="this.style.visibility='visible';"
-			onerror="showPreviewError(this.parentElement)"
-		  >
-		  </iframe>
-		  <div class="hidden" id="iframe-loading">
-			<div class="flex justify-center items-center h-64">
-			  <i data-lucide="loader" class="h-8 w-8 animate-spin text-blue-600"></i>
-			  <p class="ml-2 text-gray-600">Cargando previsualización...</p>
-			</div>
-		  </div>
-		</div>
-	  `;
-	  
-	  // Ocultar iframe inicialmente y mostrar loader
-	  const iframe = container.querySelector('iframe');
-	  const loading = container.querySelector('#iframe-loading');
-	  iframe.style.visibility = 'hidden';
-	  loading.classList.remove('hidden');
-	  
-	  iframe.onload = function() {
-		loading.classList.add('hidden');
-		iframe.style.visibility = 'visible';
-	  };
-	}
+    // Función para descargar la plantilla del usuario
+    function downloadUserTemplate(archivoId) {
+      // Crear un formulario para enviar la solicitud de descarga
+      const form = document.createElement('form');
+      form.method = 'GET';
+      form.action = `/implementacion/descargar-archivo/${archivoId}`;
+      form.target = '_blank';
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
+    }
 
-	function showPreviewError(container) {
-	  container.innerHTML = `
-		<div class="flex justify-center items-center h-64">
-		  <div class="text-center">
-			<i data-lucide="alert-triangle" class="h-12 w-12 text-yellow-600 mx-auto mb-4"></i>
-			<p class="text-gray-700">No se puede previsualizar el archivo</p>
-			<p class="text-sm text-gray-500 mt-2">Por favor, descarga el archivo para verlo completo</p>
-		  </div>
-		</div>
-	  `;
-	  lucide.createIcons();
-	}
+    // Funciones para el modal de capacitación
+    async function openTrainingModal(clause, title, itemId, plantillaId) {
+      currentState.selectedClause = clause;
+      currentState.selectedItemId = itemId;
+      currentState.currentPlantillaId = plantillaId;
+      
+      // Obtener contenido de capacitación
+      const content = trainingContent[clause] || trainingContent.default;
+      
+      // Actualizar modal
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-info').innerHTML = content.content;
+      
+      // Verificar si existe la plantilla subida por el usuario
+      const templateInfo = await checkUserTemplate(plantillaId);
+      updateTemplateStatus(templateInfo);
+      
+      // Configurar botón de descarga
+      const downloadBtn = document.getElementById('download-template');
+      
+      if (templateInfo.existe && templateInfo.archivo) {
+        downloadBtn.onclick = () => downloadUserTemplate(templateInfo.archivo.id);
+        downloadBtn.disabled = false;
+        downloadBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+        downloadBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+      } else {
+        downloadBtn.disabled = true;
+        downloadBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        downloadBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+      }
+      
+      // Mostrar modal
+      document.getElementById('training-modal').style.display = 'flex';
+      
+      // Resaltar el elemento seleccionado
+      renderChecklistItems();
+    }
 
-	// Modifica la función openTraining para usar el modal:
-	function openTraining(clause, title, itemId) {
-	  currentState.selectedClause = clause;
-	  currentState.selectedItemId = itemId;
-	  
-	  // Obtener contenido de capacitación
-	  const content = trainingContent[clause] || trainingContent.default;
-	  
-	  // Actualizar panel de capacitación
-	  document.getElementById('training-subtitle').textContent = title;
-	  document.getElementById('training-info').innerHTML = content.content;
-	  
-	  // Configurar enlaces de Excel - MODIFICADO para usar modal
-	  document.getElementById('open-excel').onclick = () => {
-		const filename = content.excelUrl.split('/').pop();
-		openExcelModal(filename, content.excelUrl);
-	  };
-	  
-	  document.getElementById('download-excel').onclick = () => {
-		const downloadUrl = content.excelUrl;
-		window.open(downloadUrl, '_blank');
-	  };
-	  
-	  // Mostrar detalles y ocultar placeholder
-	  document.getElementById('training-details').classList.remove('hidden');
-	  document.getElementById('training-placeholder').classList.add('hidden');
-	  
-	  // Resaltar el elemento seleccionado
-	  renderChecklistItems();
-	  
-	  // Desplazar a la vista si es necesario (en dispositivos móviles)
-	  if (window.innerWidth < 1024) {
-		const element = document.getElementById(`item-${itemId}`);
-		if (element) {
-		  element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-		}
-	  }
-	}
+    function updateTemplateStatus(templateInfo) {
+      const statusElement = document.getElementById('status-message');
+      
+      if (templateInfo.existe && templateInfo.archivo) {
+        // Formatear fecha
+        const fechaSubida = new Date(templateInfo.archivo.fecha_subida).toLocaleDateString('es-ES');
+        
+        statusElement.innerHTML = `
+          <div class="flex items-center text-green-600">
+            <i data-lucide="check-circle" class="h-5 w-5 mr-2"></i>
+            <div>
+              <span>Plantilla disponible (subida el ${fechaSubida})</span>
+              <div class="text-sm text-green-700">${templateInfo.archivo.nombre_archivo || 'Archivo subido'}</div>
+            </div>
+          </div>
+        `;
+      } else {
+        statusElement.innerHTML = `
+          <div class="flex items-center text-yellow-600">
+            <i data-lucide="alert-circle" class="h-5 w-5 mr-2"></i>
+            <span>${templateInfo.mensaje || 'No se ha subido una plantilla para esta cláusula'}</span>
+          </div>
+        `;
+      }
+      
+      lucide.createIcons();
+    }
 
-    function closeTraining() {
-      document.getElementById('training-details').classList.add('hidden');
-      document.getElementById('training-placeholder').classList.remove('hidden');
+    function closeModal() {
+      document.getElementById('training-modal').style.display = 'none';
       currentState.selectedClause = null;
       currentState.selectedItemId = null;
+      currentState.currentPlantillaId = null;
       renderChecklistItems();
     }
 
@@ -1412,8 +1377,6 @@
         renderChecklistItems();
       });
       
-      document.getElementById('close-training').addEventListener('click', closeTraining);
-      
       document.getElementById('generate-pdf').addEventListener('click', generatePDF);
       
       document.getElementById('save-data').addEventListener('click', saveChecklistData);
@@ -1426,31 +1389,5 @@
       renderChecklistItems();
     });
   </script>
-  
-  <!-- Modal para previsualización de Excel -->
-	<div id="excel-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-	  <div class="bg-white rounded-lg shadow-xl w-11/12 h-5/6 max-w-6xl flex flex-col">
-		<div class="flex justify-between items-center p-4 border-b">
-		  <h3 class="text-lg font-semibold" id="excel-modal-title">Previsualización de Plantilla</h3>
-		  <button onclick="closeExcelModal()" class="text-gray-400 hover:text-gray-600">
-			<i data-lucide="x" class="h-6 w-6"></i>
-		  </button>
-		</div>
-		<div class="flex-1 overflow-auto p-4" id="excel-modal-content">
-		  <p class="text-center text-gray-500 py-8">Cargando previsualización...</p>
-		</div>
-		<div class="p-4 border-t flex justify-between">
-		  <button onclick="closeExcelModal()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
-			Cerrar
-		  </button>
-		  <a id="excel-download-link" href="#" download
-			 class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2">
-			<i data-lucide="download" class="h-4 w-4"></i>
-			Descargar
-		  </a>
-		</div>
-	  </div>
-	</div>
-  
 </body>
 </html>

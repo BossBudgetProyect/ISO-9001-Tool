@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checklist ISO 9001:2015</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <style>
+    .progress-bar {
+      transition: width 0.3s ease;
+    }
+    .checklist-item {
+      transition: all 0.2s ease;
+    }
+    .checklist-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    .training-panel {
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+    .training-content {
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+    }
+    .excel-placeholder {
+      background: linear-gradient(45deg, #217346 0%, #217346 25%, #1a5c38 25%, #1a5c38 50%, #217346 50%, #217346 75%, #1a5c38 75%, #1a5c38 100%);
+      background-size: 20px 20px;
+    }
+    .sticky-panel {
+      position: sticky;
+      top: 20px;
+    }
+    .highlighted-item {
+      background-color: #f0f9ff;
+      border-left-color: #3b82f6 !important;
+    }
+    .pdf-loading {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.8);
+      z-index: 9999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3b82f6;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+	
+	#excel-modal {
+	  transition: opacity 0.3s ease;
+	}
+	
+  </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+  <!-- Loading indicator para generación de PDF -->
+  <div class="pdf-loading" id="pdf-loading">
+    <div class="spinner"></div>
+    <p class="mt-4 text-lg font-medium text-gray-700">Generando informe PDF...</p>
+  </div>
+
+  <div class="container mx-auto px-4 py-8 max-w-7xl">
+    <!-- Header -->
+    <div class="mb-8">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="p-3 rounded-lg bg-blue-500 text-white">
+          <i data-lucide="award" class="h-8 w-8"></i>
+        </div>
+        <div>
+          <h1 class="text-4xl font-bold text-gray-900">Checklist ISO 9001:2015</h1>
+          <p class="text-gray-600 text-lg">Sistema de Gestión de Calidad</p>
+          <p class="text-sm text-gray-500 mt-1" id="current-date"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistics Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+      <!-- Progress Card -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-center">
+          <div class="text-2xl font-bold text-gray-900" id="progress-percentage">0%</div>
+          <div class="text-sm text-gray-600">Progreso General</div>
+          <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+            <div class="bg-blue-600 h-2 rounded-full progress-bar" id="progress-bar" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cumple Card -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-center">
+          <div class="text-2xl font-bold text-green-600" id="cumple-count">0</div>
+          <div class="text-sm text-gray-600">Cumple</div>
+        </div>
+      </div>
+
+      <!-- No Cumple Card -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-center">
+          <div class="text-2xl font-bold text-red-600" id="no-cumple-count">0</div>
+          <div class="text-sm text-gray-600">No Cumple</div>
+        </div>
+      </div>
+
+      <!-- No Aplica Card -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-center">
+          <div class="text-2xl font-bold text-gray-600" id="no-aplica-count">0</div>
+          <div class="text-sm text-gray-600">No Aplica</div>
+        </div>
+      </div>
+
+      <!-- Pendiente Card -->
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-center">
+          <div class="text-2xl font-bold text-yellow-600" id="pendiente-count">0</div>
+          <div class="text-sm text-gray-600">Pendiente</div>
+        </div>
+      </div>
+
+      <!-- Generate PDF Button -->
+      <div class="bg-white rounded-lg shadow p-4 flex items-center justify-center">
+        <button id="generate-pdf" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2">
+          <i data-lucide="file-text" class="h-5 w-5"></i>
+          Generar PDF
+        </button>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex flex-col sm:flex-row gap-4 mb-8 justify-end">
+      <button id="save-data" class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center gap-2 transition-colors">
+        <i data-lucide="save" class="h-5 w-5"></i>
+        Guardar Auditoría
+      </button>
+      <button id="finish-audit" class="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center justify-center gap-2 transition-colors">
+        <i data-lucide="check-circle" class="h-5 w-5"></i>
+        Terminar Auditoría
+      </button>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="flex flex-col lg:flex-row gap-6">
+      <!-- Checklist Panel -->
+      <div class="w-full lg:w-2/3">
+        <div class="bg-white rounded-lg shadow">
+          <div class="p-6 border-b border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <i data-lucide="shield" class="h-6 w-6"></i>
+              Requisitos ISO 9001:2015
+            </h2>
+            <p class="text-gray-600 mt-1">
+              Evaluación detallada de cumplimiento de requisitos del sistema de gestión de calidad
+            </p>
+          </div>
+
+          <div class="p-6">
+            <!-- Filters -->
+            <div class="flex flex-col lg:flex-row gap-4 mb-6">
+              <div class="flex-1">
+                <div class="relative">
+                  <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4"></i>
+                  <input
+                    type="text"
+                    id="search-input"
+                    placeholder="Buscar por título, descripción o cláusula..."
+                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <i data-lucide="filter" class="h-4 w-4 text-gray-400"></i>
+                <select
+                  id="priority-filter"
+                  class="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">Todas las prioridades</option>
+                  <option value="high">Alta prioridad</option>
+                  <option value="medium">Prioridad media</option>
+                  <option value="low">Baja prioridad</option>
+                </select>
+              </div>
+              <div class="flex items-center gap-2">
+                <select
+                  id="category-filter"
+                  class="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">Todas las categorías</option>
+                  <!-- Las opciones se llenarán con JavaScript -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Checklist Items -->
+            <div class="space-y-6" id="checklist-items">
+              <!-- Los elementos del checklist se generarán con JavaScript -->
+            </div>
+
+            <!-- Empty State -->
+            <div class="text-center py-8 hidden" id="empty-state">
+              <i data-lucide="file-text" class="h-12 w-12 text-gray-400 mx-auto mb-4"></i>
+              <p class="text-gray-500">No se encontraron elementos que coincidan con los filtros</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Training Panel - Ahora siempre visible pero con contenido contextual -->
+      <div class="w-full lg:w-1/3">
+        <div class="bg-white rounded-lg shadow training-panel sticky-panel">
+          <div class="p-6 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-bold text-gray-900">Capacitación</h3>
+              <button id="close-training" class="text-gray-400 hover:text-gray-600">
+                <i data-lucide="x" class="h-5 w-5"></i>
+              </button>
+            </div>
+            <p class="text-gray-600 mt-1" id="training-subtitle">Selecciona una cláusula para ver detalles</p>
+          </div>
+
+          <div class="p-6 training-content">
+            <div id="training-content-area">
+              <div class="text-center py-8" id="training-placeholder">
+                <i data-lucide="book-open" class="h-12 w-12 text-gray-400 mx-auto mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Panel de Capacitación</h3>
+                <p class="text-gray-600">Haz clic en cualquier cláusula para ver información detallada y plantillas de implementación</p>
+              </div>
+
+              <div class="hidden" id="training-details">
+                <div class="mb-6">
+                  <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <i data-lucide="file-text" class="h-5 w-5"></i>
+                    Información de la Cláusula
+                  </h4>
+                  <div id="training-info" class="prose max-w-none"></div>
+                </div>
+
+                <div>
+                  <h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <i data-lucide="file-spreadsheet" class="h-5 w-5"></i>
+                    Plantilla de Implementación
+                  </h4>
+                  <div class="excel-placeholder rounded-lg p-4 text-center text-white mb-4" id="excel-placeholder">
+                    <i data-lucide="file-spreadsheet" class="h-12 w-12 mx-auto mb-2"></i>
+                    <p class="text-sm">Plantilla Excel para esta cláusula</p>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <button id="open-excel" class="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center justify-center gap-2">
+                      <i data-lucide="external-link" class="h-4 w-4"></i>
+                      Abrir Plantilla
+                    </button>
+                    <button id="download-excel" class="w-full px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 flex items-center justify-center gap-2">
+                      <i data-lucide="download" class="h-4 w-4"></i>
+                      Descargar Plantilla
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Inicializar iconos Lucide
+    lucide.createIcons();
+
+    // Mostrar fecha actual
+    function showCurrentDate() {
+      const now = new Date();
+      const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      };
+      document.getElementById('current-date').textContent = now.toLocaleDateString('es-ES', options);
+    }
+    showCurrentDate();
+
+    // Datos del checklist ISO 9001:2015
+    const checklistItems = [
+      {
+        id: "1",
+        title: "Determinación del Alcance del SGC",
+        description: "Definir el alcance del sistema de gestión de la calidad considerando productos, servicios y exclusiones",
+        completed: false,
+        priority: "high",
+        category: "Contexto de la Organización",
+        compliance: "",
+        observations: "",
+        clause: "4.3",
+      },
+      {
+        id: "2",
+        title: "Sistema de Gestión de la Calidad y sus Procesos",
+        description: "Establecer, implementar, mantener y mejorar continuamente el sistema de gestión de calidad",
+        completed: false,
+        priority: "high",
+        category: "Contexto de la Organización",
+        compliance: "",
+        observations: "",
+        clause: "4.4",
+      },
+      {
+        id: "3",
+        title: "Liderazgo y Compromiso",
+        description: "Demostrar liderazgo y compromiso de la alta dirección con el SGC",
+        completed: false,
+        priority: "high",
+        category: "Liderazgo",
+        compliance: "",
+        observations: "",
+        clause: "5.1",
+      },
+      {
+        id: "4",
+        title: "Objetivos de la Calidad",
+        description: "Establecer objetivos de calidad medibles y coherentes con la política de calidad",
+        completed: false,
+        priority: "high",
+        category: "Planificación",
+        compliance: "",
+        observations: "",
+        clause: "6.2",
+      },
+      {
+        id: "5",
+        title: "Planificación de los Cambios",
+        description: "Realizar cambios en el sistema de gestión de la calidad de manera planificada",
+        completed: false,
+        priority: "medium",
+        category: "Planificación",
+        compliance: "",
+        observations: "",
+        clause: "6.3",
+      },
+      {
+        id: "6",
+        title: "Ambiente para la Operación de los Procesos",
+        description: "Determinar y proporcionar el ambiente necesario para la operación de los procesos",
+        completed: false,
+        priority: "medium",
+        category: "Apoyo",
+        compliance: "",
+        observations: "",
+        clause: "7.1.4",
+      },
+      {
+        id: "7",
+        title: "Conocimientos de la Organización",
+        description: "Determinar y mantener el conocimiento necesario para la operación de los procesos",
+        completed: false,
+        priority: "medium",
+        category: "Apoyo",
+        compliance: "",
+        observations: "",
+        clause: "7.1.6",
+      },
+      {
+        id: "8",
+        title: "Competencia",
+        description: "Asegurar que las personas sean competentes con base en educación, formación o experiencia",
+        completed: false,
+        priority: "high",
+        category: "Apoyo",
+        compliance: "",
+        observations: "",
+        clause: "7.2",
+      },
+      {
+        id: "9",
+        title: "Toma de Conciencia",
+        description: "Garantizar que el personal sea consciente de la política, los objetivos de calidad y su contribución",
+        completed: false,
+        priority: "medium",
+        category: "Apoyo",
+        compliance: "",
+        observations: "",
+        clause: "7.3",
+      },
+      {
+        id: "10",
+        title: "Información Documentada",
+        description: "Mantener y controlar la información documentada necesaria para el SGC",
+        completed: false,
+        priority: "high",
+        category: "Información Documentada",
+        compliance: "",
+        observations: "",
+        clause: "7.5",
+      },
+      {
+        id: "11",
+        title: "Planificación y Control Operacional",
+        description: "Planificar, implementar y controlar los procesos necesarios para cumplir los requisitos",
+        completed: false,
+        priority: "high",
+        category: "Operación",
+        compliance: "",
+        observations: "",
+        clause: "8.1",
+      },
+      {
+        id: "12",
+        title: "Requisitos para los Productos y Servicios",
+        description: "Asegurar la determinación, revisión y comunicación de los requisitos para productos y servicios",
+        completed: false,
+        priority: "high",
+        category: "Operación",
+        compliance: "",
+        observations: "",
+        clause: "8.2",
+      },
+      {
+        id: "13",
+        title: "Control de Procesos, Productos y Servicios Externos",
+        description: "Asegurar que los procesos y servicios externos cumplan con los requisitos",
+        completed: false,
+        priority: "high",
+        category: "Operación",
+        compliance: "",
+        observations: "",
+        clause: "8.4",
+      },
+      {
+        id: "14",
+        title: "Control de la Producción y la Prestación del Servicio",
+        description: "Implementar el control necesario para la producción y prestación de servicios",
+        completed: false,
+        priority: "high",
+        category: "Operación",
+        compliance: "",
+        observations: "",
+        clause: "8.5.2",
+      },
+      {
+        id: "15",
+        title: "Liberación de Productos y Servicios",
+        description: "Liberar los productos y servicios solo cuando se hayan cumplido los requisitos",
+        completed: false,
+        priority: "high",
+        category: "Operación",
+        compliance: "",
+        observations: "",
+        clause: "8.6",
+      },
+      {
+        id: "16",
+        title: "Control de las Salidas No Conformes",
+        description: "Asegurar que las salidas no conformes sean identificadas y controladas",
+        completed: false,
+        priority: "high",
+        category: "Operación",
+        compliance: "",
+        observations: "",
+        clause: "8.7",
+      },
+      {
+        id: "17",
+        title: "Seguimiento, Medición, Análisis y Evaluación",
+        description: "Realizar seguimiento, medición, análisis y evaluación del desempeño del SGC",
+        completed: false,
+        priority: "high",
+        category: "Evaluación del Desempeño",
+        compliance: "",
+        observations: "",
+        clause: "9.1",
+      },
+    ];
+
+    // Contenido de capacitación para cada cláusula
+    const trainingContent = {
+      "4.3": {
+        title: "Determinación del Alcance del SGC - Cláusula 4.3",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Determinación del Alcance</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Definir claramente los límites y la aplicabilidad del sistema de gestión de la calidad.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Considerar el contexto de la organización y las partes interesadas</li>
+            <li>Incluir productos, servicios y procesos relevantes</li>
+            <li>Documentar y mantener actualizado el alcance</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Documento del alcance del SGC</li>
+            <li>Comunicación del alcance a las partes interesadas</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/4.3.+Plantilla+Alcance+formato.xlsx"
+      },
+      "4.4": {
+        title: "Sistema de Gestión de la Calidad y sus Procesos - Cláusula 4.4",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Sistema de Gestión de la Calidad y Procesos</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Establecer, implementar, mantener y mejorar continuamente el SGC, incluyendo los procesos necesarios y sus interacciones.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Identificación de procesos y sus interacciones</li>
+            <li>Determinación de entradas, salidas y criterios de control</li>
+            <li>Asignación de responsabilidades y recursos</li>
+            <li>Evaluación y mejora de procesos</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Mapa de procesos</li>
+            <li>Indicadores de desempeño de procesos</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/4.4.+Ficha+de+procesos+Formato.xlsx"
+      },
+      "5.1": {
+        title: "Liderazgo y Compromiso - Cláusula 5.1",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Liderazgo y Compromiso</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Garantizar el compromiso de la alta dirección con el SGC y su orientación hacia el cliente.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Responsabilidad de la alta dirección en la eficacia del SGC</li>
+            <li>Enfoque al cliente y satisfacción</li>
+            <li>Promoción de la mejora continua</li>
+            <li>Integración de requisitos del SGC en procesos de negocio</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Declaraciones de compromiso de la alta dirección</li>
+            <li>Planes de comunicación y revisión de objetivos</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/5.1.+Check+list+Liderazgo+Actual+Formato.xlsx"
+      },
+      "6.2": {
+        title: "Objetivos de la Calidad - Cláusula 6.2",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Objetivos de la Calidad</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Establecer objetivos medibles y coherentes con la política de calidad para promover la mejora.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Ser medibles y coherentes con la política</li>
+            <li>Tener en cuenta requisitos aplicables</li>
+            <li>Ser pertinentes para la conformidad de productos y servicios</li>
+            <li>Planificar cómo alcanzarlos (qué, quién, cuándo, cómo)</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Listado de objetivos documentados</li>
+            <li>Seguimiento y revisión de resultados</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/6.2+Objetivos+de+calidad.xlsx"
+      },
+      "6.3": {
+        title: "Planificación de los Cambios - Cláusula 6.3",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Planificación de los Cambios</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Planificar y controlar cambios en el SGC de manera que no se afecte la conformidad.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Definir propósito y consecuencias de los cambios</li>
+            <li>Asignar recursos y responsabilidades</li>
+            <li>Revisar integridad del SGC después de cambios</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Planes de cambio documentados</li>
+            <li>Registros de evaluación de impacto</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/6.3.+Planificación+de+los+cambios+formato.xlsx"
+      },
+      "7.1.4": {
+        title: "Ambiente para la Operación de los Procesos - Cláusula 7.1.4",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Ambiente Operacional</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Proporcionar y mantener un ambiente adecuado para la operación de los procesos.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Condiciones físicas (temperatura, humedad, limpieza)</li>
+            <li>Factores sociales y psicológicos (motivación, seguridad)</li>
+            <li>Ambiente ergonómico y seguro</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Registros de condiciones ambientales</li>
+            <li>Políticas de seguridad y salud en el trabajo</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/7.1.4.+Formato+Medición+de+condiciones+físicas.xlsx"
+      },
+      "7.1.6": {
+        title: "Conocimientos de la Organización - Cláusula 7.1.6",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Gestión del Conocimiento</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Mantern y poner a disposición los conocimientos necesarios para operar los procesos y asegurar la conformidad.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Identificar conocimientos necesarios</li>
+            <li>Acceso to fuentes internas y externas de conocimiento</li>
+            <li>Actualizar y compartir conocimiento</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Base de datos de conocimiento</li>
+            <li>Planes de capacitación</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/7.1.6.+Formato-Conocimientos+de+la+organización.xlsx"
+      },
+      "7.2": {
+        title: "Competencia - Cláusula 7.2",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Competencia del Personal</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Asegurar que los trabajadores sean competentes en base a educación, formación o experiencia.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Determinar la competencia necesaria</li>
+            <li>Proporcionar formación o tomar acciones necesarias</li>
+            <li>Conservar registros de competencia</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Matriz de competencias</li>
+            <li>Registros de formación</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/7.2.+Formato-+Competencia.xlsx"
+      },
+      "7.3": {
+        title: "Toma de Conciencia - Cláusula 7.3",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Conciencia del Personal</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Garantizar que el personal sea consciente de la política de calidad, objetivos y su contribución al SGC.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Conciencia de política y objetivos de calidad</li>
+            <li>Importancia de su trabajo en el SGC</li>
+            <li>Implicaciones de no cumplir con el SGC</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Registros de inducción y capacitaciones</li>
+            <li>Encuestas de conciencia del personal</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/7.3.+Formato++-+Toma+de+conciencia.xlsx"
+      },
+      "7.5": {
+        title: "Información Documentada - Cláusula 7.5",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Gestión de la Información Documentada</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Crear, actualizar y controlar la información documentada necesaria para el SGC.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Identificación y descripción adecuada</li>
+            <li>Formato, revisión y aprobación apropiados</li>
+            <li>Control de distribución, acceso y almacenamiento</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Procedimientos documentados</li>
+            <li>Registros de control documental</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/7.5.+Formato+-+Información+documentada.xlsx"
+      },
+      "8.1": {
+        title: "Planificación y Control Operacional - Cláusula 8.1",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Planificación y Control</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Planificar, implementar y controlar los procesos necesarios para cumplir requisitos y aplicar acciones planificadas.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Definir criterios de aceptación para procesos y productos</li>
+            <li>Implementar controles adecuados en cada etapa</li>
+            <li>Gestionar cambios planificados y consecuencias no previstas</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Planes operacionales documentados</li>
+            <li>Registros de control de cambios</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/8.1.+Planificación+y+control+operacional.xlsx"
+      },
+      "8.2": {
+        title: "Requisitos para los Productos y Servicios - Cláusula 8.2",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Gestión de Requisitos</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Asegurar que se determinan y revisan los requisitos del cliente y normativos antes de comprometerse a suministrar productos o servicios.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Determinación clara de requisitos del cliente</li>
+            <li>Revisión y resolución de diferencias contractuales</li>
+            <li>Comunicación efectiva con clientes</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Contratos revisados</li>
+            <li>Registros de comunicación con clientes</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/8.2.+Requisitos+para+los+productos+y+servicios+-+Formato.xlsx"
+      },
+      "8.4": {
+        title: "Control de Proveedores Externos - Cláusula 8.4",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Control de Proveedores y Servicios Externos</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Asegurar que productos, servicios y procesos proporcionados externamente cumplen los requisitos aplicables.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Evaluar y seleccionar proveedores en base a criterios</li>
+            <li>Monitorear desempeño de proveedores</li>
+            <li>Definir controles aplicables para cada suministro externo</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Evaluaciones de proveedores</li>
+            <li>Registros de seguimiento de desempeño</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/8.4+Control+de+los+procesos+externos.xlsx"
+      },
+      "8.5.2": {
+        title: "Identificación y Trazabilidad - Cláusula 8.5.2",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Identificación y Trazabilidad</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Identificar y rastrear productos y servicios en todas las etapas cuando sea apropiado.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Etiquetado y codificación de productos</li>
+            <li>Registros que permitan trazabilidad</li>
+            <li>Control de identificación única</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Etiquetas de productos o lotes</li>
+            <li>Registros de trazabilidad</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/8.5.2.+Identificación+y+Trazabilidad+-+ADN+Lean.xlsx"
+      },
+      "8.6": {
+        title: "Liberación de Productos y Servicios - Cláusula 8.6",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Liberación de Productos</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Asegurar que los productos y servicios cumplan con los requisitos antes de ser entregados al cliente.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Verificación contra criterios de aceptación</li>
+            <li>Autorización formal de liberación</li>
+            <li>Conservación de registros de liberación</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Registros de inspección y pruebas</li>
+            <li>Firmas de autorización de liberación</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/8.6.+Liberación+de+los+productos+y+servicios+formato.xlsx"
+      },
+      "8.7": {
+        title: "Control de Salidas No Conformes - Cláusula 8.7",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Gestión de No Conformidades</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Prevenir que productos o servicios no conformes se entreguen al cliente o se utilicen de manera no intencionada.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Identificar claramente las salidas no conformes</li>
+            <li>Controlar y registrar acciones correctivas</li>
+            <li>Informar a las partes interesadas pertinentes</li>
+            <li>Verificar nuevamente la conformidad después de correcciones</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Registros de no conformidades</li>
+            <li>Acciones correctivas documentadas</li>
+            <li>Registros de reinspección or revalidación</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/8.7.+Control+de+Salidas+no+conformes+Formato.xlsx"
+      },
+      "9.1": {
+        title: "Seguimiento, Medición, Análisis y Evaluación - Cláusula 9.1",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Evaluación del Desempeño</h3>
+          <p class="mb-4"><strong>Objetivo:</strong> Asegurar que la organización recopile, analice y use información confiable para evaluar el desempeño del sistema de gestión de calidad.</p>
+
+          <h4 class="font-medium mb-2">Requisitos Clave:</h4>
+          <ul class="list-disc list-inside mb-4">
+            <li>Determinar qué se debe medir y cuándo</li>
+            <li>Seleccionar métodos apropiados de seguimiento y medición</li>
+            <li>Analizar y evaluar resultados de desempeño y satisfacción del cliente</li>
+            <li>Usar los resultados para la mejora del sistema</li>
+          </ul>
+
+          <h4 class="font-medium mb-2">Evidencias Requeridas:</h4>
+          <ul class="list-disc list-inside">
+            <li>Indicadores de desempeño documentados</li>
+            <li>Encuestas de satisfacción del cliente</li>
+            <li>Informes de análisis de datos</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/9.1.+Seguimiento,+medición,+análisis+y+evaluación++-+Formato.xlsx"
+      },
+      "default": {
+        title: "Capacitación ISO 9001",
+        content: `
+          <h3 class="text-lg font-semibold mb-2">Información de Capacitación</h3>
+          <p class="mb-4">El contenido de capacitación específico para esta cláusula está en desarrollo.</p>
+          
+          <h4 class="font-medium mb-2">Recursos Adicionales:</h4>
+          <ul class="list-disc list-inside">
+            <li>Norma ISO 9001:2015</li>
+            <li>Guías de implementación</li>
+            <li>Ejemplos de mejores prácticas</li>
+          </ul>
+        `,
+        excelUrl: "/plantillas/general.xlsx"
+      }
+    };
+
+    // Estado de la aplicación
+    let currentState = {
+      searchTerm: "",
+      filterPriority: "all",
+      filterCategory: "all",
+      selectedClause: null,
+      selectedItemId: null
+    };
+
+    // Funciones de utilidad
+    function getPriorityColor(priority) {
+      switch (priority) {
+        case "high":
+          return "bg-red-100 text-red-800 border-red-200";
+        case "medium":
+          return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        case "low":
+          return "bg-green-100 text-green-800 border-green-200";
+        default:
+          return "bg-gray-100 text-gray-800 border-gray-200";
+      }
+    }
+
+    function getPriorityText(priority) {
+      switch (priority) {
+        case "high":
+          return "Alta";
+        case "medium":
+          return "Media";
+        case "low":
+          return "Baja";
+        default:
+          return "";
+      }
+    }
+
+    function getComplianceColor(compliance) {
+      switch (compliance) {
+        case "cumple":
+          return "bg-green-100 text-green-800 border-green-200";
+        case "no_cumple":
+          return "bg-red-100 text-red-800 border-red-200";
+        case "no_aplica":
+          return "bg-gray-100 text-gray-800 border-gray-200";
+        default:
+          return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      }
+    }
+
+    function getComplianceText(compliance) {
+      switch (compliance) {
+        case "cumple":
+          return "Cumple";
+        case "no_cumple":
+          return "No Cumple";
+        case "no_aplica":
+          return "No Aplica";
+        default:
+          return "Pendiente";
+      }
+    }
+
+    function getProgress() {
+      const completed = checklistItems.filter(item => item.completed).length;
+      return Math.round((completed / checklistItems.length) * 100);
+    }
+
+    function getComplianceStats() {
+      const cumple = checklistItems.filter(item => item.compliance === "cumple").length;
+      const noCumple = checklistItems.filter(item => item.compliance === "no_cumple").length;
+      const noAplica = checklistItems.filter(item => item.compliance === "no_aplica").length;
+      const pendiente = checklistItems.filter(item => item.compliance === "").length;
+      return { cumple, noCumple, noAplica, pendiente };
+    }
+
+    function filterItems() {
+      return checklistItems.filter(item => {
+        const matchesSearch =
+          item.title.toLowerCase().includes(currentState.searchTerm.toLowerCase()) ||
+          item.description.toLowerCase().includes(currentState.searchTerm.toLowerCase()) ||
+          item.clause.includes(currentState.searchTerm);
+        const matchesPriority = currentState.filterPriority === "all" || item.priority === currentState.filterPriority;
+        const matchesCategory = currentState.filterCategory === "all" || item.category === currentState.filterCategory;
+        return matchesSearch && matchesPriority && matchesCategory;
+      });
+    }
+
+    function updateStats() {
+      const progress = getProgress();
+      document.getElementById('progress-percentage').textContent = `${progress}%`;
+      document.getElementById('progress-bar').style.width = `${progress}%`;
+      
+      const stats = getComplianceStats();
+      document.getElementById('cumple-count').textContent = stats.cumple;
+      document.getElementById('no-cumple-count').textContent = stats.noCumple;
+      document.getElementById('no-aplica-count').textContent = stats.noAplica;
+      document.getElementById('pendiente-count').textContent = stats.pendiente;
+    }
+
+    function renderChecklistItems() {
+      const container = document.getElementById('checklist-items');
+      const emptyState = document.getElementById('empty-state');
+      const filteredItems = filterItems();
+      
+      if (filteredItems.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      
+      emptyState.classList.add('hidden');
+      
+      container.innerHTML = filteredItems.map(item => `
+        <div class="bg-white rounded-lg border-l-4 border-l-blue-500/50 shadow-sm checklist-item ${currentState.selectedItemId === item.id ? 'highlighted-item' : ''}" id="item-${item.id}">
+          <div class="p-6">
+            <div class="space-y-4">
+              <!-- Header Section -->
+              <div class="flex items-start gap-4">
+                <input 
+                  type="checkbox" 
+                  id="checkbox-${item.id}" 
+                  ${item.completed ? 'checked' : ''}
+                  class="mt-1 h-5 w-5 text-blue-600 rounded focus:ring-blue-500"
+                  onchange="toggleItem('${item.id}')"
+                />
+                <div class="flex-1 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                      <button onclick="openTraining('${item.clause}', '${item.title}', '${item.id}')" class="text-base font-medium cursor-pointer hover:text-blue-600 transition-colors ${item.completed ? 'line-through text-gray-400' : 'text-gray-900'} text-left">
+                        ${item.title}
+                      </button>
+                      <button onclick="openTraining('${item.clause}', '${item.title}', '${item.id}')" class="h-8 w-8 p-0 hover:bg-blue-50 rounded-md">
+                        <i data-lucide="book-open" class="h-4 w-4 text-blue-600"></i>
+                      </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                        Cláusula ${item.clause}
+                      </span>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(item.priority)}">
+                        ${getPriorityText(item.priority)}
+                      </span>
+                      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        ${item.category}
+                      </span>
+                    </div>
+                  </div>
+                  <p class="text-sm ${item.completed ? 'text-gray-400' : 'text-gray-600'}">
+                    ${item.description}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Compliance and Observations Section -->
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                <div class="space-y-2">
+                  <label class="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <i data-lucide="shield" class="h-4 w-4"></i>
+                    Estado de Cumplimiento
+                  </label>
+                  <select 
+                    onchange="updateCompliance('${item.id}', this.value)"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="" ${item.compliance === "" ? "selected" : ""}>Seleccionar estado</option>
+                    <option value="cumple" ${item.compliance === "cumple" ? "selected" : ""}>Cumple</option>
+                    <option value="no_cumple" ${item.compliance === "no_cumple" ? "selected" : ""}>No Cumple</option>
+                    <option value="no_aplica" ${item.compliance === "no_aplica" ? "selected" : ""}>No Aplica</option>
+                  </select>
+                  ${item.compliance ? `
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getComplianceColor(item.compliance)}">
+                      ${getComplianceText(item.compliance)}
+                    </span>
+                  ` : ''}
+                </div>
+
+                <div class="space-y-2">
+                  <label class="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <i data-lucide="message-square" class="h-4 w-4"></i>
+                    Observaciones
+                  </label>
+                  <textarea 
+                    placeholder="Agregar observaciones, evidencias o comentarios sobre el cumplimiento..."
+                    onchange="updateObservations('${item.id}', this.value)"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
+                  >${item.observations}</textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+      
+      // Volver a crear iconos para los nuevos elementos
+      lucide.createIcons();
+    }
+
+    function populateCategoryFilter() {
+      const categories = [...new Set(checklistItems.map(item => item.category))];
+      const filter = document.getElementById('category-filter');
+      
+      categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category;
+        option.textContent = category;
+        filter.appendChild(option);
+      });
+    }
+
+    // Funciones de manipulación de datos
+    function toggleItem(itemId) {
+      const item = checklistItems.find(i => i.id === itemId);
+      if (item) {
+        item.completed = !item.completed;
+        updateStats();
+        renderChecklistItems();
+      }
+    }
+
+    function updateCompliance(itemId, compliance) {
+      const item = checklistItems.find(i => i.id === itemId);
+      if (item) {
+        item.compliance = compliance;
+        updateStats();
+        renderChecklistItems();
+      }
+    }
+
+    function updateObservations(itemId, observations) {
+      const item = checklistItems.find(i => i.id === itemId);
+      if (item) {
+        item.observations = observations;
+      }
+    }
+	
+	
+    // Funciones para el modal de Excel
+	function openExcelModal(filename, excelUrl) {
+	  const modal = document.getElementById('excel-modal');
+	  const title = document.getElementById('excel-modal-title');
+	  const content = document.getElementById('excel-modal-content');
+	  const downloadLink = document.getElementById('excel-download-link');
+	  
+	  title.textContent = `Plantilla: ${filename}`;
+	  downloadLink.href = excelUrl;
+	  downloadLink.download = filename;
+	  
+	  // Mostrar modal
+	  modal.classList.remove('hidden');
+	  
+	  // Intentar cargar con el método principal
+	  loadExcelPreview(excelUrl, content);
+	  
+	  // Si falla después de 5 segundos, mostrar alternativa
+	  setTimeout(() => {
+		if (content.innerHTML.includes('Cargando previsualización')) {
+		  loadExcelFallbackPreview(excelUrl, content);
+		}
+	  }, 5000);
+	}
+
+	function closeExcelModal() {
+	  document.getElementById('excel-modal').classList.add('hidden');
+	}
+
+	function loadExcelPreview(excelUrl, container) {
+	  // Usar el visor de Google para archivos Excel
+	  const googleViewerUrl = `https://docs.google.com/gview?url=${encodeURIComponent(window.location.origin + excelUrl)}&embedded=true`;
+	  
+	  container.innerHTML = `
+		<div class="h-full">
+		  <iframe 
+			src="${googleViewerUrl}" 
+			class="w-full h-full border-0" 
+			frameborder="0"
+			onload="this.style.visibility='visible';"
+			onerror="showPreviewError(this.parentElement)"
+		  >
+		  </iframe>
+		  <div class="hidden" id="iframe-loading">
+			<div class="flex justify-center items-center h-64">
+			  <i data-lucide="loader" class="h-8 w-8 animate-spin text-blue-600"></i>
+			  <p class="ml-2 text-gray-600">Cargando previsualización...</p>
+			</div>
+		  </div>
+		</div>
+	  `;
+	  
+	  // Ocultar iframe inicialmente y mostrar loader
+	  const iframe = container.querySelector('iframe');
+	  const loading = container.querySelector('#iframe-loading');
+	  iframe.style.visibility = 'hidden';
+	  loading.classList.remove('hidden');
+	  
+	  iframe.onload = function() {
+		loading.classList.add('hidden');
+		iframe.style.visibility = 'visible';
+	  };
+	}
+
+	function showPreviewError(container) {
+	  container.innerHTML = `
+		<div class="flex justify-center items-center h-64">
+		  <div class="text-center">
+			<i data-lucide="alert-triangle" class="h-12 w-12 text-yellow-600 mx-auto mb-4"></i>
+			<p class="text-gray-700">No se puede previsualizar el archivo</p>
+			<p class="text-sm text-gray-500 mt-2">Por favor, descarga el archivo para verlo completo</p>
+		  </div>
+		</div>
+	  `;
+	  lucide.createIcons();
+	}
+
+	// Modifica la función openTraining para usar el modal:
+	function openTraining(clause, title, itemId) {
+	  currentState.selectedClause = clause;
+	  currentState.selectedItemId = itemId;
+	  
+	  // Obtener contenido de capacitación
+	  const content = trainingContent[clause] || trainingContent.default;
+	  
+	  // Actualizar panel de capacitación
+	  document.getElementById('training-subtitle').textContent = title;
+	  document.getElementById('training-info').innerHTML = content.content;
+	  
+	  // Configurar enlaces de Excel - MODIFICADO para usar modal
+	  document.getElementById('open-excel').onclick = () => {
+		const filename = content.excelUrl.split('/').pop();
+		openExcelModal(filename, content.excelUrl);
+	  };
+	  
+	  document.getElementById('download-excel').onclick = () => {
+		const downloadUrl = content.excelUrl;
+		window.open(downloadUrl, '_blank');
+	  };
+	  
+	  // Mostrar detalles y ocultar placeholder
+	  document.getElementById('training-details').classList.remove('hidden');
+	  document.getElementById('training-placeholder').classList.add('hidden');
+	  
+	  // Resaltar el elemento seleccionado
+	  renderChecklistItems();
+	  
+	  // Desplazar a la vista si es necesario (en dispositivos móviles)
+	  if (window.innerWidth < 1024) {
+		const element = document.getElementById(`item-${itemId}`);
+		if (element) {
+		  element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		}
+	  }
+	}
+
+    function closeTraining() {
+      document.getElementById('training-details').classList.add('hidden');
+      document.getElementById('training-placeholder').classList.remove('hidden');
+      currentState.selectedClause = null;
+      currentState.selectedItemId = null;
+      renderChecklistItems();
+    }
+
+    // Función para generar el PDF
+    function generatePDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      // Mostrar indicador de carga
+      document.getElementById('pdf-loading').style.display = 'flex';
+      
+      // Obtener fecha y hora actual
+      const now = new Date();
+      const dateTime = now.toLocaleString('es-ES');
+      
+      // Título del documento
+      doc.setFontSize(20);
+      doc.setTextColor(40, 40, 40);
+      doc.text('Informe de Checklist ISO 9001:2015', 105, 20, { align: 'center' });
+      
+      // Fecha y hora
+      doc.setFontSize(12);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generado el: ${dateTime}`, 105, 30, { align: 'center' });
+      
+      // Estadísticas
+      doc.setFontSize(14);
+      doc.setTextColor(40, 40, 40);
+      doc.text('Resumen de Estadísticas', 20, 45);
+      
+      doc.setFontSize(12);
+      const stats = getComplianceStats();
+      const progress = getProgress();
+      
+      doc.text(`Progreso General: ${progress}%`, 20, 55);
+      doc.text(`Cumple: ${stats.cumple}`, 20, 65);
+      doc.text(`No Cumple: ${stats.noCumple}`, 20, 75);
+      doc.text(`No Aplica: ${stats.noAplica}`, 20, 85);
+      doc.text(`Pendiente: ${stats.pendiente}`, 20, 95);
+      
+      // Detalles del checklist
+      let y = 110;
+      doc.setFontSize(14);
+      doc.text('Detalles del Checklist', 20, y);
+      y += 10;
+      
+      doc.setFontSize(10);
+      checklistItems.forEach((item, index) => {
+        if (y > 260) {
+          doc.addPage();
+          y = 20;
+        }
+        
+        doc.setFontSize(10);
+        doc.setTextColor(40, 40, 40);
+        doc.setFont(undefined, 'bold');
+        doc.text(`${item.clause} - ${item.title}`, 20, y);
+        y += 7;
+        
+        doc.setFont(undefined, 'normal');
+        doc.setTextColor(100, 100, 100);
+        
+        // Estado de cumplimiento
+        const complianceText = getComplianceText(item.compliance);
+        let complianceColor;
+        switch (item.compliance) {
+          case 'cumple': complianceColor = [0, 128, 0]; break;
+          case 'no_cumple': complianceColor = [255, 0, 0]; break;
+          case 'no_aplica': complianceColor = [100, 100, 100]; break;
+          default: complianceColor = [200, 150, 0];
+        }
+        
+        doc.setTextColor(...complianceColor);
+        doc.text(`Estado: ${complianceText}`, 20, y);
+        y += 5;
+        
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Categoría: ${item.category}`, 20, y);
+        y += 5;
+        
+        doc.text(`Prioridad: ${getPriorityText(item.priority)}`, 20, y);
+        y += 5;
+        
+        if (item.observations) {
+          const splitObservations = doc.splitTextToSize(`Observaciones: ${item.observations}`, 170);
+          doc.text(splitObservations, 20, y);
+          y += (splitObservations.length * 5) + 3;
+        }
+        
+        y += 5;
+      });
+      
+      // Guardar el PDF
+      setTimeout(() => {
+        doc.save(`Informe_ISO_9001_${now.getTime()}.pdf`);
+        // Ocultar indicador de carga
+        document.getElementById('pdf-loading').style.display = 'none';
+      }, 500);
+    }
+
+    // Función para guardar los datos en la base de datos
+    async function saveChecklistData() {
+      try {
+        // Mostrar indicador de carga
+        const saveButton = document.getElementById('save-data');
+        const originalText = saveButton.innerHTML;
+        saveButton.innerHTML = '<i data-lucide="loader" class="h-5 w-5 animate-spin"></i> Guardando...';
+        saveButton.disabled = true;
+        
+        // Obtener el ID de la empresa (simulado para este ejemplo)
+        // En una aplicación real, esto vendría de tu sistema de autenticación o base de datos
+        const empresaId = 1; // Este valor debería ser dinámico en tu aplicación
+        
+        // Preparar datos para enviar
+        const dataToSave = {
+          empresa_id: parseInt(empresaId),
+          resultados: checklistItems.map(item => ({
+            clausula: item.clause,
+            estado: item.compliance === "cumple" ? "Cumple" : 
+                    item.compliance === "no_cumple" ? "No cumple" : 
+                    item.compliance === "no_aplica" ? "No aplica" : "Pendiente",
+            observaciones: item.observations || ""
+          }))
+        };
+        
+        // Enviar datos al servidor
+        const response = await fetch('/guardar-checklist', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(dataToSave)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          // Mostrar mensaje de éxito
+          alert('Auditoría guardada correctamente en la base de datos');
+        } else {
+          throw new Error(result.message || 'Error al guardar los datos');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al guardar los datos: ' + error.message);
+      } finally {
+        // Restaurar botón
+        const saveButton = document.getElementById('save-data');
+        saveButton.innerHTML = '<i data-lucide="save" class="h-5 w-5"></i> Guardar Auditoría';
+        saveButton.disabled = false;
+        lucide.createIcons();
+      }
+    }
+
+    // Función para terminar la auditoría
+    function finishAudit() {
+      if (confirm('¿Estás seguro de que deseas terminar la auditoría? Se redirigirá al menú principal.')) {
+        // Redirigir al menú principal
+        window.location.href = '/IsoSelect';
+      }
+    }
+
+    // Inicialización
+    document.addEventListener('DOMContentLoaded', function() {
+      // Configurar event listeners
+      document.getElementById('search-input').addEventListener('input', function(e) {
+        currentState.searchTerm = e.target.value;
+        renderChecklistItems();
+      });
+      
+      document.getElementById('priority-filter').addEventListener('change', function(e) {
+        currentState.filterPriority = e.target.value;
+        renderChecklistItems();
+      });
+      
+      document.getElementById('category-filter').addEventListener('change', function(e) {
+        currentState.filterCategory = e.target.value;
+        renderChecklistItems();
+      });
+      
+      document.getElementById('close-training').addEventListener('click', closeTraining);
+      
+      document.getElementById('generate-pdf').addEventListener('click', generatePDF);
+      
+      document.getElementById('save-data').addEventListener('click', saveChecklistData);
+      
+      document.getElementById('finish-audit').addEventListener('click', finishAudit);
+      
+      // Inicializar vista
+      populateCategoryFilter();
+      updateStats();
+      renderChecklistItems();
+    });
+  </script>
+  
+  <!-- Modal para previsualización de Excel -->
+	<div id="excel-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+	  <div class="bg-white rounded-lg shadow-xl w-11/12 h-5/6 max-w-6xl flex flex-col">
+		<div class="flex justify-between items-center p-4 border-b">
+		  <h3 class="text-lg font-semibold" id="excel-modal-title">Previsualización de Plantilla</h3>
+		  <button onclick="closeExcelModal()" class="text-gray-400 hover:text-gray-600">
+			<i data-lucide="x" class="h-6 w-6"></i>
+		  </button>
+		</div>
+		<div class="flex-1 overflow-auto p-4" id="excel-modal-content">
+		  <p class="text-center text-gray-500 py-8">Cargando previsualización...</p>
+		</div>
+		<div class="p-4 border-t flex justify-between">
+		  <button onclick="closeExcelModal()" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+			Cerrar
+		  </button>
+		  <a id="excel-download-link" href="#" download
+			 class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2">
+			<i data-lucide="download" class="h-4 w-4"></i>
+			Descargar
+		  </a>
+		</div>
+	  </div>
+	</div>
+  
+</body>
+</html>
