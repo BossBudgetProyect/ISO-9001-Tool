@@ -54,7 +54,7 @@ router.get('/', isAuthenticated, async (req, res) => {
     // Obtener archivos subidos por el usuario
     const archivosUsuario = await new Promise((resolve, reject) => {
       db.all(`
-        SELECT au.plantilla_id, au.archivo_path, au.fecha_subida 
+        SELECT au.id, au.plantilla_id, au.archivo_path, au.fecha_subida 
         FROM archivos_usuario au 
         WHERE au.usuario_id = ?
       `, [req.user.id], (err, rows) => {
