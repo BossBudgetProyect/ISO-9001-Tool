@@ -98,8 +98,7 @@ router.get('/descargar/:id', isAuthenticated, async (req, res) => {
       req.session.error_msg = 'Plantilla no encontrada';
       return res.redirect('/implementacion');
     }
-    
-    const filePath = path.join(__dirname, '..', plantilla.archivo_path);
+    const filePath = path.resolve(__dirname, '..', plantilla.archivo_path);
     const downloadName = `${plantilla.clausula}_${plantilla.nombre}.xlsx`;
     
     // Verificar si el archivo existe
