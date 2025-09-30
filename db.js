@@ -83,6 +83,19 @@ db.serialize(() => {
     )
   `);
 
+  db.run(`
+    CREATE TABLE usuarios_capacitaciones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      usuario_id INTEGER NOT NULL,
+      plantilla_id INTEGER NOT NULL,
+      completado INTEGER DEFAULT 0, -- 0 = no completado, 1 = completado
+      fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+      FOREIGN KEY (plantilla_id) REFERENCES plantillas(id)
+    )
+
+  `);
+
   // Tabla para los archivos subidos por usuarios (NUEVA)
   db.run(`
     CREATE TABLE IF NOT EXISTS archivos_usuario (
@@ -95,6 +108,8 @@ db.serialize(() => {
       FOREIGN KEY (plantilla_id) REFERENCES plantillas(id)
     )
   `);
+
+
 
   // Insertar datos iniciales en el checklist solo si está vacío
   db.get("SELECT COUNT(*) AS count FROM iso_9001_checklist", (err, row) => {
