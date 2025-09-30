@@ -1,7 +1,7 @@
 // Librerías necesarias para el funcionamiento
 const express = require('express');
-const db = require('./db'); // Conexión a la base de datos local
-const bcrypt = require('bcrypt'); // Encriptado de contraseñas
+// const db = require('./db'); // Eliminado: No se usará base de datos local en Vercel
+// const bcrypt = require('bcrypt'); // Eliminado: No se usará en este ejemplo solo con sesiones
 const session = require('express-session'); // Manejo de sesiones
 const path = require('path');
 const flash = require('connect-flash'); // ← Añade esto para flash messages
@@ -12,9 +12,10 @@ const port = process.env.PORT || 3000;
 
 // Creación de sesión para cada usuario:
 app.use(session({
-    secret: 'PruebaSxcrxtx', // Puedes cambiarla por una más segura
-    resave: false,
-    saveUninitialized: false
+  secret: 'PruebaSxcrxtx',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false, maxAge: 60 * 60 * 1000 } // 1 hora
 }));
 
 // Configurar flash messages ← Añade esto
@@ -33,27 +34,34 @@ app.use(express.json());
 
 // Servir archivos estáticos
 app.use(express.static('public'));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Eliminado para compatibilidad Vercel
 app.use('/plantillas', express.static('plantillas'));
 
-// Llamamos las rutas de otherRoutes
-const isoRoutes = require('./routes/isoRoutes');
-app.use('/', isoRoutes);
+// Rutas de ejemplo usando solo sesión (sin base de datos)
+app.get('/', (req, res) => {
+  if (!req.session.user) {
+    return res.render('login');
+  }
+  res.render('IsoSelect', { user: req.session.user });
+});
 
-// Llamamos las rutas de authRoutes
-const authRoutes = require('./routes/authRoutes');
-app.use('/', authRoutes);
+app.post('/login', (req, res) => {
+  const { correo, contrasena } = req.body;
+  // Simulación de autenticación: cualquier usuario/contraseña
+  req.session.user = { correo };
+  res.redirect('/');
+});
 
-// Configurar rutas con prefijos específicos ← CORRECCIÓN IMPORTANTE
-const implementacionRoutes = require('./routes/implementacion');
-app.use('/implementacion', implementacionRoutes); // ← Cambiado de '/' a '/implementacion'
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/');
+  });
+});
 
-const capacitacionRoutes = require('./routes/capacitacion');
-app.use('/capacitacion', capacitacionRoutes); // ← Cambiado de '/' a '/capacitacion'
 
 // Ruta de prueba para verificar que el servidor funciona
 app.get('/test', (req, res) => {
-  res.send('✅ Servidor funcionando correctamente');
+  res.send('✅ Servidor funcionando correctamente (sin base de datos)');
 });
 
 // Middleware para manejar rutas no encontradas

@@ -11,7 +11,7 @@ El proyecto está estructurado en varias carpetas y archivos principales:
 ├── DatabaseJS/         # Scripts y utilidades para manipulación de la base de datos
 ├── ISOSystem.db        # Base de datos SQLite principal
 ├── db.js               # Conexión y lógica de base de datos
-├── index.js            # Archivo principal de inicio de la aplicación (antes app.js)
+├── index.js            # Archivo principal de inicio de la aplicación 
 ├── middlewares/        # Middlewares de autenticación y administración
 ├── plantillas/         # Plantillas Excel para procesos ISO 9001
 │   └── iso9001/        # Plantillas específicas para cada cláusula

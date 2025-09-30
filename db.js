@@ -84,7 +84,7 @@ db.serialize(() => {
   `);
 
   db.run(`
-    CREATE TABLE usuarios_capacitaciones (
+    CREATE TABLE IF NOT EXISTS usuarios_capacitaciones (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       usuario_id INTEGER NOT NULL,
       plantilla_id INTEGER NOT NULL,
@@ -93,7 +93,6 @@ db.serialize(() => {
       FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
       FOREIGN KEY (plantilla_id) REFERENCES plantillas(id)
     )
-
   `);
 
   // Tabla para los archivos subidos por usuarios (NUEVA)
